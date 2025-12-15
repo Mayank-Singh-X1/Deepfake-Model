@@ -1,5 +1,10 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
+import sys
+import os
+
+# Add model directory to path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'model')))
 import datetime
 import torch
 import cv2
@@ -26,14 +31,13 @@ try:
 except ImportError:
     SAFETENSORS_AVAILABLE = False
 
-app = Flask(__name__, static_folder='frontend', static_url_path='')
+app = Flask(__name__, static_folder='../frontend', static_url_path='')
 CORS(app)
 
 # Configuration
-UPLOAD_FOLDER = 'uploads'
+UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
-HISTORY_FOLDER = os.path.join('frontend', 'history_uploads')
+HISTORY_FOLDER = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'history_uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(HISTORY_FOLDER, exist_ok=True)
 

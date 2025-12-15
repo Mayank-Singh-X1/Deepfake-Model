@@ -2,7 +2,7 @@ import sqlite3
 import datetime
 import os
 
-DB_NAME = 'database.db'
+DB_NAME = os.path.join(os.path.dirname(__file__), 'database.db')
 
 def get_db_connection():
     try:
