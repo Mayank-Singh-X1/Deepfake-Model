@@ -329,7 +329,7 @@ async function handleAnalysisUpload(file) {
         const formData = new FormData();
         formData.append('file', file);
 
-        const response = await fetch('http://localhost:5001/api/predict', {
+        const response = await fetch('/api/predict', {
             method: 'POST',
             body: formData
         });
