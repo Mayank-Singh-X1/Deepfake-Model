@@ -15,9 +15,30 @@
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="showcase.css">
+    <link rel="stylesheet" href="loader.css">
 </head>
 
 <body>
+    <!-- Enhanced Loading Screen -->
+    <div id="loader-wrapper">
+        <!-- Brutalist Counter -->
+        <div class="loader-content brutalist">
+            <div class="counter-wrapper">
+                <span id="loader-percent">0</span><span class="percent-symbol">%</span>
+            </div>
+
+            <!-- Detection Status (Cycling: ANALYZING → REAL? → FAKE?) -->
+            <div class="detection-status" id="detectionStatus">
+                <span class="status-text">ANALYZING...</span>
+            </div>
+        </div>
+
+        <!-- Meta Information -->
+        <div class="loader-meta">
+            <span>DeepGuard v2.0</span>
+            <span id="loaderTimestamp">INITIALIZING SYSTEM</span>
+        </div>
+    </div>
     <!-- Animated Background -->
     <div id="canvas-container"></div>
     <div class="mesh-background"></div>
@@ -73,6 +94,15 @@
                 <div class="pyramid-face pyramid-left"></div>
                 <div class="pyramid-face pyramid-right"></div>
                 <div class="pyramid-face pyramid-base"></div>
+            </div>
+
+            <!-- Fluid Hover Reveal Images -->
+            <div class="hero-reveal-container" id="heroRevealContainer">
+                <img src="assets/vr-blue.png" alt="AI Detection Background" class="reveal-image reveal-bottom"
+                    id="hero-img-bg">
+                <img src="assets/gemini_reveal.png" alt="AI Detection Foreground" class="reveal-image reveal-top"
+                    id="hero-img-reveal" style="display: none;"> <!-- Hidden, drawn by canvas -->
+                <canvas id="revealCanvas" class="reveal-canvas"></canvas>
             </div>
         </div>
         <div class="container">
@@ -466,7 +496,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script src="three_bg.js"></script>
+    <script src="loader.js"></script>
     <script src="script.js"></script>
+    <script src="hero_reveal.js"></script>
 </body>
 
 </html>

@@ -1,0 +1,144 @@
+/* ==================== BRUTALIST LOADER ==================== */
+#loader-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #000;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    color: #fff;
+    font-family: 'Space Grotesk', sans-serif;
+    transition: transform 0.8s cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+#loader-wrapper.loaded {
+    transform: translateY(-100%);
+}
+
+/* Brutalist Content */
+.loader-content {
+    text-align: center;
+    position: relative;
+    z-index: 5;
+    mix-blend-mode: normal;
+}
+
+.counter-wrapper {
+    font-size: 15vw;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.05em;
+    color: #E3F514;
+    /* DeepGuard Yellow */
+    margin-bottom: 2rem;
+    position: relative;
+    display: inline-block;
+}
+
+#loader-percent {
+    font-variant-numeric: tabular-nums;
+}
+
+.percent-symbol {
+    font-size: 4vw;
+    vertical-align: super;
+    margin-left: 10px;
+    opacity: 0.8;
+}
+
+/* Status Text */
+.detection-status {
+    font-family: 'Inter', sans-serif;
+    font-size: 1.2rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    font-weight: 600;
+    min-height: 1.5em;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.status-text {
+    transition: color 0.3s ease;
+}
+
+.detection-status.analyzing .status-text {
+    color: #fff;
+    animation: blink 1s infinite;
+}
+
+.detection-status.real .status-text {
+    color: #00ff00;
+    text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+}
+
+.detection-status.fake .status-text {
+    color: #ff0000;
+    text-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+}
+
+/* Meta Information */
+.loader-meta {
+    position: absolute;
+    bottom: 60px;
+    width: 100%;
+    padding: 0 60px;
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+/* Animations */
+@keyframes blink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Scan Line Effect (Cyberpunk touch) */
+#loader-wrapper::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(transparent 50%,
+            rgba(227, 245, 20, 0.02) 50%);
+    background-size: 100% 4px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .counter-wrapper {
+        font-size: 20vw;
+    }
+
+    .loader-meta {
+        bottom: 30px;
+        padding: 0 30px;
+        flex-direction: column;
+        gap: 10px;
+        align-items: center;
+    }
+}

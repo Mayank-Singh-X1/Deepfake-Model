@@ -791,9 +791,51 @@ select:focus {
     }
 }
 
+/* ==================== HERO REVEAL EFFECT ==================== */
+.hero-reveal-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 5;
+    pointer-events: auto;
+    overflow: hidden;
+}
+
+.reveal-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+}
+
+.reveal-bottom {
+    z-index: 1;
+}
+
+.reveal-top {
+    z-index: 2;
+}
+
+.reveal-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 3;
+    pointer-events: none;
+}
+
 .hero-content {
     position: relative;
-    z-index: 20;
+    z-index: 30;
     text-align: center;
     max-width: 900px;
     margin: 0 auto;
@@ -2418,17 +2460,60 @@ input:checked+.slider:before {
 }
 
 @keyframes glitch-anim {
-    0% { clip-path: inset(42% 0 10% 0); transform: skew(0.5deg); }
-    10% { clip-path: inset(18% 0 88% 0); transform: skew(0.4deg); }
-    20% { clip-path: inset(76% 0 11% 0); transform: skew(0.1deg); }
-    30% { clip-path: inset(34% 0 29% 0); transform: skew(0.5deg); }
-    40% { clip-path: inset(12% 0 71% 0); transform: skew(0.6deg); }
-    50% { clip-path: inset(93% 0 3% 0); transform: skew(0.8deg); }
-    60% { clip-path: inset(7% 0 54% 0); transform: skew(0.2deg); }
-    70% { clip-path: inset(52% 0 17% 0); transform: skew(0.9deg); }
-    80% { clip-path: inset(23% 0 38% 0); transform: skew(0.3deg); }
-    90% { clip-path: inset(61% 0 6% 0); transform: skew(0.7deg); }
-    100% { clip-path: inset(84% 0 69% 0); transform: skew(0.4deg); }
+    0% {
+        clip-path: inset(42% 0 10% 0);
+        transform: skew(0.5deg);
+    }
+
+    10% {
+        clip-path: inset(18% 0 88% 0);
+        transform: skew(0.4deg);
+    }
+
+    20% {
+        clip-path: inset(76% 0 11% 0);
+        transform: skew(0.1deg);
+    }
+
+    30% {
+        clip-path: inset(34% 0 29% 0);
+        transform: skew(0.5deg);
+    }
+
+    40% {
+        clip-path: inset(12% 0 71% 0);
+        transform: skew(0.6deg);
+    }
+
+    50% {
+        clip-path: inset(93% 0 3% 0);
+        transform: skew(0.8deg);
+    }
+
+    60% {
+        clip-path: inset(7% 0 54% 0);
+        transform: skew(0.2deg);
+    }
+
+    70% {
+        clip-path: inset(52% 0 17% 0);
+        transform: skew(0.9deg);
+    }
+
+    80% {
+        clip-path: inset(23% 0 38% 0);
+        transform: skew(0.3deg);
+    }
+
+    90% {
+        clip-path: inset(61% 0 6% 0);
+        transform: skew(0.7deg);
+    }
+
+    100% {
+        clip-path: inset(84% 0 69% 0);
+        transform: skew(0.4deg);
+    }
 }
 
 /* Glitch effect for showcase badges */
@@ -2441,9 +2526,22 @@ input:checked+.slider:before {
 }
 
 @keyframes glitch-badge {
-    0%, 100% { transform: translate(0); text-shadow: none; }
-    25% { transform: translate(-2px, 1px); text-shadow: 2px 0 #ff00c1, -2px 0 #00fff9; }
-    75% { transform: translate(2px, -1px); text-shadow: -2px 0 #ff00c1, 2px 0 #00fff9; }
+
+    0%,
+    100% {
+        transform: translate(0);
+        text-shadow: none;
+    }
+
+    25% {
+        transform: translate(-2px, 1px);
+        text-shadow: 2px 0 #ff00c1, -2px 0 #00fff9;
+    }
+
+    75% {
+        transform: translate(2px, -1px);
+        text-shadow: -2px 0 #ff00c1, 2px 0 #00fff9;
+    }
 }
 
 /* 2. Holographic Scanner */
@@ -2472,10 +2570,23 @@ input:checked+.slider:before {
 }
 
 @keyframes scanMove {
-    0% { top: -10%; opacity: 0; }
-    10% { opacity: 0.8; }
-    90% { opacity: 0.8; }
-    100% { top: 110%; opacity: 0; }
+    0% {
+        top: -10%;
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 0.8;
+    }
+
+    90% {
+        opacity: 0.8;
+    }
+
+    100% {
+        top: 110%;
+        opacity: 0;
+    }
 }
 
 /* ==================== MULTI-FILE UPLOAD ENHANCEMENTS ==================== */
@@ -2492,9 +2603,17 @@ input:checked+.slider:before {
 }
 
 @keyframes bounceIn {
-    0% { transform: scale(0); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
+    0% {
+        transform: scale(0);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
 }
 
 /* Enhanced Drag-Over State */
@@ -2565,6 +2684,7 @@ input:checked+.slider:before {
         opacity: 0;
         transform: translateX(-20px);
     }
+
     to {
         opacity: 1;
         transform: translateX(0);
@@ -2684,13 +2804,18 @@ input:checked+.slider:before {
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
     animation: shimmer 1.5s infinite;
 }
 
 @keyframes shimmer {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(100%);
+    }
 }
 
 .progress-details {
@@ -2786,12 +2911,29 @@ input:checked+.slider:before {
     animation: fadeInUp 0.6s ease backwards;
 }
 
-.recent-card:nth-child(1) { animation-delay: 0.1s; }
-.recent-card:nth-child(2) { animation-delay: 0.2s; }
-.recent-card:nth-child(3) { animation-delay: 0.3s; }
-.recent-card:nth-child(4) { animation-delay: 0.4s; }
-.recent-card:nth-child(5) { animation-delay: 0.5s; }
-.recent-card:nth-child(6) { animation-delay: 0.6s; }
+.recent-card:nth-child(1) {
+    animation-delay: 0.1s;
+}
+
+.recent-card:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.recent-card:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+.recent-card:nth-child(4) {
+    animation-delay: 0.4s;
+}
+
+.recent-card:nth-child(5) {
+    animation-delay: 0.5s;
+}
+
+.recent-card:nth-child(6) {
+    animation-delay: 0.6s;
+}
 
 .recent-card:hover {
     border-color: var(--accent-yellow);
@@ -3069,8 +3211,15 @@ input:checked+.slider:before {
 }
 
 @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.6; }
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.6;
+    }
 }
 
 .file-queue-item.completed .file-icon {

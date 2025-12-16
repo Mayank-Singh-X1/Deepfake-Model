@@ -1,3 +1,7 @@
+// ==================== ENHANCED LOADER SYSTEM ====================
+// Moved to loader.js
+
+
 // ==================== AUDIO SYSTEM ====================
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -155,6 +159,48 @@ document.addEventListener('DOMContentLoaded', () => {
     const floatingCube = document.getElementById('floatingCube');
     const floatingPyramid = document.getElementById('floatingPyramid');
 
+    // Initialize Particles.js for Neural Network Effect
+    if (typeof particlesJS !== 'undefined') {
+        particlesJS('loader-particles', {
+            "particles": {
+                "number": { "value": 80, "density": { "enable": true, "value_area": 800 } },
+                "color": { "value": "#E3F514" },
+                "shape": { "type": "circle" },
+                "opacity": { "value": 0.5, "random": true },
+                "size": { "value": 3, "random": true },
+                "line_linked": {
+                    "enable": true,
+                    "distance": 150,
+                    "color": "#E3F514",
+                    "opacity": 0.4,
+                    "width": 1
+                },
+                "move": {
+                    "enable": true,
+                    "speed": 2,
+                    "direction": "none",
+                    "random": false,
+                    "straight": false,
+                    "out_mode": "out",
+                    "bounce": false,
+                }
+            },
+            "interactivity": {
+                "detect_on": "canvas",
+                "events": { "onhover": { "enable": true, "mode": "grab" }, "onclick": { "enable": true, "mode": "push" } },
+                "modes": { "grab": { "distance": 140, "line_linked": { "opacity": 1 } } }
+            },
+            "retina_detect": true
+        });
+    }
+
+    // Simulate loading progress
+    let progress = 0;
+    // The following variables are already declared within the next 'if' block.
+    // Redeclaring them here would cause a SyntaxError.
+    // let currentX = 0;
+    // let currentY = 0;
+
     if (floatingCube || floatingPyramid) {
         let mouseX = 0;
         let mouseY = 0;
@@ -209,6 +255,194 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         animate3DObjects();
+    }
+
+    // ==================== FLUID HOVER REVEAL EFFECT ====================
+    const revealContainer = document.getElementById('heroRevealContainer');
+    const revealCanvas = document.getElementById('revealCanvas');
+    const revealTopImage = document.getElementById('revealTopImage');
+    const revealBottomImage = document.querySelector('.reveal-bottom');
+
+    if (revealContainer && revealCanvas && revealTopImage && revealBottomImage) {
+        const ctx = revealCanvas.getContext('2d');
+
+        // Set canvas size
+        const updateCanvasSize = () => {
+            const rect = revealContainer.getBoundingClientRect();
+            revealCanvas.width = rect.width;
+            revealCanvas.height = rect.height;
+        };
+        updateCanvasSize();
+        window.addEventListener('resize', updateCanvasSize);
+
+        // Physics parameters - optimized to match reference video
+        const physics = {
+            mouseX: -1000, // Start off-screen
+            mouseY: -1000,
+            targetX: -1000,
+            targetY: -1000,
+            velocityX: 0,
+            velocityY: 0,
+            prevMouseX: -1000,
+            prevMouseY: -1000,
+            damping: 0.18, // Smoother, more buttery motion
+            stiffness: 0.08, // More responsive following
+            isHovering: false
+        };
+
+        // Control points for organic shape - 20 points
+        class ControlPoint {
+            constructor(angle, baseRadius) {
+                this.angle = angle;
+                this.baseRadius = baseRadius;
+                this.currentRadius = baseRadius;
+                this.targetRadius = baseRadius;
+                this.noiseOffset = Math.random() * 1000;
+                this.noiseSpeed = 0.001 + Math.random() * 0.001;
+                this.trailStrength = 0;
+            }
+
+            update(centerX, centerY, time, velocityX, velocityY) {
+                // Calculate velocity magnitude
+                const speed = Math.sqrt(velocityX * velocityX + velocityY * velocityY);
+
+                // Organic noise - constant variation
+                const noise = Math.sin(time * this.noiseSpeed + this.noiseOffset) * 30;
+
+                // Trailing effect - points drag behind based on angle to velocity
+                const velocityAngle = Math.atan2(velocityY, velocityX);
+                const angleDiff = this.angle - velocityAngle;
+
+                // Dramatic trailing - enhanced for reference video match
+                const trailingFactor = Math.cos(angleDiff);
+                const trailing = trailingFactor < 0 ? trailingFactor * speed * 60 : 0; // Increased for more visible trailing
+
+                // Perpendicular deformation - squash and stretch
+                const perpFactor = Math.sin(angleDiff);
+                const perpDeformation = perpFactor * speed * 15;
+
+                // Shape morphing based on velocity
+                const velocityMorph = speed * 3;
+
+                // Combine all effects
+                this.targetRadius = this.baseRadius + noise + trailing + perpDeformation + velocityMorph;
+
+                // Smooth interpolation
+                this.currentRadius += (this.targetRadius - this.currentRadius) * 0.15;
+
+                // Calculate final position
+                this.x = centerX + Math.cos(this.angle) * this.currentRadius;
+                this.y = centerY + Math.sin(this.angle) * this.currentRadius;
+            }
+        }
+
+        // Create 20 control points for smooth organic shape
+        const controlPoints = [];
+        const pointCount = 20;
+        const baseRadius = 350; // Large 350px base - matches reference video
+
+        for (let i = 0; i < pointCount; i++) {
+            const angle = (i / pointCount) * Math.PI * 2;
+            controlPoints.push(new ControlPoint(angle, baseRadius));
+        }
+
+        // Mouse tracking
+        revealContainer.addEventListener('mouseenter', () => {
+            physics.isHovering = true;
+        });
+
+        revealContainer.addEventListener('mouseleave', () => {
+            physics.isHovering = false;
+            // Move target off-screen when leaving
+            physics.targetX = -1000;
+            physics.targetY = -1000;
+        });
+
+        revealContainer.addEventListener('mousemove', (e) => {
+            const rect = revealContainer.getBoundingClientRect();
+            physics.targetX = e.clientX - rect.left;
+            physics.targetY = e.clientY - rect.top;
+        });
+
+        // Draw smooth organic shape using control points
+        function drawOrganicShape(centerX, centerY, time, velocityX, velocityY) {
+            // Update all control points
+            controlPoints.forEach(point => {
+                point.update(centerX, centerY, time, velocityX, velocityY);
+            });
+
+            // Create smooth curve through all points using quadratic curves
+            ctx.beginPath();
+
+            // Start at first point
+            ctx.moveTo(controlPoints[0].x, controlPoints[0].y);
+
+            // Draw smooth curve through all points
+            for (let i = 0; i < pointCount; i++) {
+                const current = controlPoints[i];
+                const next = controlPoints[(i + 1) % pointCount];
+
+                // Use quadratic curve for smoothness
+                const midX = (current.x + next.x) / 2;
+                const midY = (current.y + next.y) / 2;
+
+                ctx.quadraticCurveTo(current.x, current.y, midX, midY);
+            }
+
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // Animation loop
+        let animationTime = 0;
+        function animateReveal() {
+            animationTime++;
+
+            // Track previous position for velocity calculation
+            const prevX = physics.mouseX;
+            const prevY = physics.mouseY;
+
+            // Spring physics for smooth following
+            const dx = physics.targetX - physics.mouseX;
+            const dy = physics.targetY - physics.mouseY;
+
+            physics.velocityX += dx * physics.stiffness;
+            physics.velocityY += dy * physics.stiffness;
+
+            physics.velocityX *= (1 - physics.damping);
+            physics.velocityY *= (1 - physics.damping);
+
+            physics.mouseX += physics.velocityX;
+            physics.mouseY += physics.velocityY;
+
+            // Calculate actual velocity for morphing
+            const actualVelocityX = physics.mouseX - prevX;
+            const actualVelocityY = physics.mouseY - prevY;
+
+            // Clear canvas
+            ctx.clearRect(0, 0, revealCanvas.width, revealCanvas.height);
+
+            // CURSOR WINDOW EFFECT: Reveal bottom image only where cursor is
+            if (physics.isHovering || physics.mouseX > -500) { // Keep animating for a bit after leaving
+                // Draw organic shape with all enhancements
+                ctx.fillStyle = 'white'; // This will be used as alpha mask
+                drawOrganicShape(physics.mouseX, physics.mouseY, animationTime, actualVelocityX, actualVelocityY);
+
+                // Apply mask to BOTTOM image (reveal it only where cursor is)
+                revealBottomImage.style.maskImage = `url(${revealCanvas.toDataURL()})`;
+                revealBottomImage.style.webkitMaskImage = `url(${revealCanvas.toDataURL()})`;
+                revealBottomImage.style.maskSize = 'cover';
+                revealBottomImage.style.webkitMaskSize = 'cover';
+            } else {
+                // No mask when not hovering - bottom image hidden
+                revealBottomImage.style.maskImage = 'none';
+                revealBottomImage.style.webkitMaskImage = 'none';
+            }
+
+            requestAnimationFrame(animateReveal);
+        }
+
+        animateReveal();
     }
 });
 
@@ -476,7 +710,7 @@ document.querySelectorAll('a').forEach(link => {
 });
 
 // 2. Magnetic Buttons
-const magneticBtns = document.querySelectorAll('.btn-primary, .btn-hero-primary, .btn-hero-secondary, .nav-link');
+const magneticBtns = document.querySelectorAll('.btn-primary, .btn-hero-primary, .btn-hero-secondary, .nav-link, .logo');
 
 magneticBtns.forEach(btn => {
     btn.addEventListener('mousemove', e => {
@@ -1862,3 +2096,5 @@ if (window.location.pathname.includes('history.html')) {
         if (sortBy) sortBy.addEventListener('change', applyFilters);
     });
 }
+
+// Loading screen removed
