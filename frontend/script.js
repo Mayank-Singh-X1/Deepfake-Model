@@ -56,6 +56,110 @@ const playSound = (type) => {
 // ==================== PARTICLE BACKGROUND ====================
 // ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', () => {
+    // ==================== THEME MANAGEMENT ====================
+    const initTheme = () => {
+        // Create Toggle Button
+        const themeToggleBtn = document.createElement('button');
+        themeToggleBtn.className = 'theme-toggle-btn';
+        themeToggleBtn.title = "Toggle Theme";
+
+        // Find navbar content
+        const navContent = document.querySelector('.nav-content');
+        if (navContent) {
+            // We want to group the last element (usually the CTA button) with our new toggle
+            // to keep them both on the right side if justify-content: space-between is used.
+            const lastItem = navContent.lastElementChild;
+
+            // Check if the last item is a button/link (and not the menu or logo if order differs)
+            // In standard index.html: Logo, Menu, Button. Button is last.
+            if (lastItem && !lastItem.classList.contains('nav-menu') && lastItem.tagName !== 'SCRIPT') {
+                const wrapper = document.createElement('div');
+                wrapper.style.display = 'flex';
+                wrapper.style.alignItems = 'center';
+
+                // Insert wrapper before the last item
+                navContent.insertBefore(wrapper, lastItem);
+
+                // Move last item into wrapper
+                wrapper.appendChild(lastItem);
+
+                // Append toggle to wrapper
+                wrapper.appendChild(themeToggleBtn);
+            } else {
+                // Fallback if structure is unexpected
+                navContent.appendChild(themeToggleBtn);
+            }
+        }
+
+        // Check Logic
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        updateThemeIcon(themeToggleBtn, savedTheme);
+
+        themeToggleBtn.addEventListener('click', (e) => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+
+            // Fallback for browsers without View Transitions
+            if (!document.startViewTransition) {
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+                updateThemeIcon(themeToggleBtn, newTheme);
+                return;
+            }
+
+            // Get click coordinates
+            const x = e.clientX;
+            const y = e.clientY;
+
+            // Calculate distance to the furthest corner
+            const endRadius = Math.hypot(
+                Math.max(x, innerWidth - x),
+                Math.max(y, innerHeight - y)
+            );
+
+            // Start the view transition
+            const transition = document.startViewTransition(() => {
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+                updateThemeIcon(themeToggleBtn, newTheme);
+            });
+
+            // Animate the circular clip path
+            transition.ready.then(() => {
+                const clipPath = [
+                    `circle(0px at ${x}px ${y}px)`,
+                    `circle(${endRadius}px at ${x}px ${y}px)`
+                ];
+
+                document.documentElement.animate(
+                    {
+                        clipPath: clipPath,
+                    },
+                    {
+                        duration: 800, // Slightly slower for dramatic effect
+                        easing: 'ease-in-out',
+                        pseudoElement: '::view-transition-new(root)',
+                    }
+                );
+            });
+        });
+    };
+
+    const updateThemeIcon = (btn, theme) => {
+        if (theme === 'light') {
+            btn.innerHTML = '🌙'; // Moon
+            btn.style.borderColor = 'var(--text-primary)';
+            btn.style.color = 'var(--text-primary)';
+        } else {
+            btn.innerHTML = '☀'; // Sun
+            btn.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+            btn.style.color = '#fff';
+        }
+    };
+
+    initTheme();
+
     // Initialize AOS
     if (typeof AOS !== 'undefined') {
         AOS.init({
@@ -69,17 +173,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize Particles.js (if element exists)
     if (document.getElementById('particles-js') && typeof particlesJS !== 'undefined') {
+        const theme = localStorage.getItem('theme') || 'dark';
+        const pColor = theme === 'light' ? '#0044cc' : '#E3F514';
+
         particlesJS('particles-js', {
             particles: {
                 number: { value: 60, density: { enable: true, value_area: 800 } },
-                color: { value: '#E3F514' },
+                color: { value: pColor },
                 shape: { type: 'circle' },
                 opacity: { value: 0.3, random: true },
                 size: { value: 3, random: true },
                 line_linked: {
                     enable: true,
                     distance: 150,
-                    color: '#E3F514',
+                    color: pColor,
                     opacity: 0.2,
                     width: 1
                 },

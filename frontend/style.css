@@ -70,9 +70,476 @@
     --font-display: 'Space Grotesk', monospace;
 }
 
-html {
-    scroll-behavior: smooth;
+:root[data-theme="light"] {
+    --primary-bg: #FFFFFF;
+    --secondary-bg: #F0F7FF;
+    /* Very light blue */
+    --card-bg: #F8FBFF;
+    --glass-bg: rgba(0, 31, 63, 0.05);
+
+    --text-primary: #002B5C;
+    /* Deep Navy Blue */
+    --text-inverse: #FFFFFF;
+    --text-secondary: #334E68;
+    --text-muted: #627D98;
+
+    --accent-yellow: #0056D2;
+    /* Changing primary accent to Blue as per request for "Blue White Yellow" theme prominence, or sticking to Yellow? 
+                               Make it a strong Blue for buttons, and Yellow for highlights? 
+                               The user said "light theme... containing blue white and yellow". 
+                               If I keep yellow text on white it's bad. 
+                               Let's use Blue for primary actions/text, Yellow for specific highlights. */
+    --accent-yellow: #0044cc;
+    /* Blue for primary calls to action in light mode */
+    --accent-highlight: #FFD700;
+    /* Yellow for highlights */
+
+    --gradient-text: linear-gradient(180deg, #002B5C 0%, #0056D2 100%);
+    --border-light: 1px solid rgba(0, 43, 92, 0.1);
+    --border-yellow: 1px solid var(--accent-yellow);
+
+    --shadow-glow: 0 0 60px rgba(0, 86, 210, 0.15);
 }
+
+/* View Transition Animation */
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+}
+
+
+/* ==================== LIGHT THEME OVERRIDES (BLUE DOMINANT) ==================== */
+:root[data-theme="light"] {
+    --accent-yellow: #0044CC;
+    /* Redefine accent to Blue globally for light mode */
+    --accent-yellow-dim: #003399;
+}
+
+:root[data-theme="light"] .feature-card,
+:root[data-theme="light"] .tech-card,
+:root[data-theme="light"] .showcase-item,
+:root[data-theme="light"] .model-card,
+:root[data-theme="light"] .stat-card {
+    background: #FFFFFF;
+    border: 1px solid rgba(0, 43, 92, 0.1);
+    box-shadow: 0 10px 30px rgba(0, 43, 92, 0.05);
+    color: var(--text-primary);
+}
+
+:root[data-theme="light"] .feature-description,
+:root[data-theme="light"] .tech-card p,
+:root[data-theme="light"] .showcase-item p {
+    color: var(--text-secondary);
+}
+
+:root[data-theme="light"] .extension-section {
+    background: #F0F7FF;
+    color: var(--text-primary);
+}
+
+:root[data-theme="light"] .extension-description {
+    color: var(--text-secondary);
+}
+
+:root[data-theme="light"] .hero-stats {
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(0, 43, 92, 0.1);
+    box-shadow: 0 10px 40px rgba(0, 43, 92, 0.05);
+}
+
+:root[data-theme="light"] .hero-stats .stat-label {
+    color: var(--text-secondary);
+}
+
+/* ANALYSIS PAGE BLUE THEME OVERRIDES */
+:root[data-theme="light"] .verdict-card,
+:root[data-theme="light"] .metric-card {
+    background: #FFFFFF;
+    border: 1px solid rgba(0, 68, 204, 0.15);
+    /* Blue Border */
+    box-shadow: 0 5px 20px rgba(0, 68, 204, 0.05);
+    /* Blue Shadow */
+    color: var(--text-primary);
+}
+
+:root[data-theme="light"] .queue-header,
+:root[data-theme="light"] .file-queue-container,
+:root[data-theme="light"] .upload-area {
+    background: #F8FBFF;
+    /* Very light blue bg */
+    border-color: rgba(0, 68, 204, 0.2);
+}
+
+:root[data-theme="light"] .queue-count-badge {
+    background: #0044CC;
+    color: white;
+}
+
+:root[data-theme="light"] .btn-primary,
+:root[data-theme="light"] .btn-secondary-small {
+    background: #0044CC;
+    color: white;
+    border: none;
+    box-shadow: 0 4px 15px rgba(0, 68, 204, 0.3);
+}
+
+:root[data-theme="light"] .btn-primary:hover {
+    background: #003399;
+    transform: translateY(-2px);
+}
+
+:root[data-theme="light"] .meter-fill {
+    background: #0044CC;
+    /* Blue progress bar */
+    box-shadow: 0 0 10px rgba(0, 68, 204, 0.5);
+}
+
+:root[data-theme="light"] .stat-value,
+:root[data-theme="light"] .metric-value,
+:root[data-theme="light"] .verdict-title {
+    color: #0044CC;
+    /* Blue Text */
+    -webkit-text-fill-color: #0044CC;
+}
+
+:root[data-theme="light"] .metric-label,
+:root[data-theme="light"] .stat-label,
+:root[data-theme="light"] .verdict-label,
+:root[data-theme="light"] .upload-description {
+    color: var(--text-secondary);
+}
+
+:root[data-theme="light"] .section-title,
+:root[data-theme="light"] .analysis-container h2,
+:root[data-theme="light"] .analysis-container h3,
+:root[data-theme="light"] .analysis-container h4 {
+    color: #002B5C;
+    /* Deep Navy */
+}
+
+/* Specific Fix for Icons */
+:root[data-theme="light"] .feature-icon,
+:root[data-theme="light"] .stat-icon,
+:root[data-theme="light"] .metric-icon {
+    background: rgba(0, 68, 204, 0.1);
+    border: 1px solid rgba(0, 68, 204, 0.2);
+    color: #0044CC;
+}
+
+/* Fix Chart Colors if possible (Canvas usually needs JS update, but CSS can help text) */
+:root[data-theme="light"] .chart-container {
+    filter: none;
+    /* Ensure no dark mode filters */
+}
+
+
+
+
+
+/* Invert icons or change their background in light mode if they are images */
+:root[data-theme="light"] .feature-icon {
+    background: rgba(0, 68, 204, 0.05);
+    /* Blue tint background */
+    border: 1px solid rgba(0, 68, 204, 0.1);
+}
+
+:root[data-theme="light"] .feature-icon img,
+:root[data-theme="light"] .tech-icon {
+    /* If icons are yellow, rotating hue by ~180 might make them blue? Yellow is 60, Blue is 240. Delta 180. */
+    filter: hue-rotate(180deg) brightness(0.8);
+}
+
+/* Specific fix for text visibility */
+:root[data-theme="light"] .feature-title,
+:root[data-theme="light"] .tech-card h3 {
+    color: var(--text-primary);
+}
+
+
+/* Fix Result Section Box Background */
+:root[data-theme="light"] .results-section {
+    background: #FFFFFF;
+    border: 1px solid rgba(0, 43, 92, 0.1);
+    box-shadow: 0 10px 40px rgba(0, 43, 92, 0.05);
+    border-radius: 24px;
+}
+
+/* Fix "Back to upload" button invisibility */
+:root[data-theme="light"] .btn-secondary-outline {
+    color: #0044CC;
+    border-color: rgba(0, 68, 204, 0.3);
+    background: transparent;
+}
+
+:root[data-theme="light"] .btn-secondary-outline:hover {
+    background: rgba(0, 68, 204, 0.05);
+    border-color: #0044CC;
+}
+
+/* Fix Empty State Text */
+:root[data-theme="light"] .empty-state h3 {
+    color: var(--text-primary);
+}
+
+:root[data-theme="light"] .empty-state p {
+    color: var(--text-secondary);
+}
+
+/* History Page Specific Overrides */
+:root[data-theme="light"] .history-controls {
+    background: #FFFFFF;
+    border: 1px solid rgba(0, 43, 92, 0.1);
+    box-shadow: 0 10px 30px rgba(0, 43, 92, 0.05);
+}
+
+:root[data-theme="light"] .search-input,
+:root[data-theme="light"] .filter-select {
+    background: #F0F7FF;
+    border: 1px solid rgba(0, 68, 204, 0.2);
+    color: var(--text-primary);
+}
+
+:root[data-theme="light"] .search-input:focus,
+:root[data-theme="light"] .filter-select:focus {
+    border-color: #0044CC;
+    background: #FFFFFF;
+}
+
+:root[data-theme="light"] .history-table-container {
+    background: #FFFFFF;
+    border: 1px solid rgba(0, 43, 92, 0.1);
+    box-shadow: 0 10px 30px rgba(0, 43, 92, 0.05);
+}
+
+:root[data-theme="light"] .history-table th {
+    background: #F0F7FF;
+    color: #002B5C;
+    border-bottom: 2px solid rgba(0, 68, 204, 0.1);
+}
+
+:root[data-theme="light"] .history-table td {
+    border-bottom: 1px solid rgba(0, 43, 92, 0.05);
+    color: var(--text-secondary);
+}
+
+:root[data-theme="light"] .history-table tr:hover {
+    background: #F8FBFF;
+}
+
+:root[data-theme="light"] .history-table td:first-child {
+    color: var(--text-primary);
+    /* Filename or primary col */
+}
+
+/* Fix Action Buttons in Table */
+:root[data-theme="light"] .action-btn {
+    background: rgba(0, 68, 204, 0.1);
+    color: #0044CC;
+}
+
+:root[data-theme="light"] .action-btn:hover {
+    background: #0044CC;
+    color: #FFFFFF;
+}
+
+:root[data-theme="light"] .btn-export {
+    background: #F0F7FF;
+    color: #0044CC;
+    border: 1px solid rgba(0, 68, 204, 0.2);
+}
+
+:root[data-theme="light"] .btn-export:hover {
+    background: #0044CC;
+    color: #FFFFFF;
+}
+
+:root[data-theme="light"] .btn-clear-all {
+    background: rgba(255, 0, 0, 0.1);
+    color: #FF0000;
+    border: 1px solid rgba(255, 0, 0, 0.2);
+}
+
+:root[data-theme="light"] .btn-clear-all:hover {
+    background: #FF0000;
+    color: #FFFFFF;
+}
+
+/* History Page Specific Overrides */
+:root[data-theme="light"] .history-controls {
+    background: #FFFFFF;
+    border: 1px solid rgba(0, 43, 92, 0.1);
+    box-shadow: 0 10px 30px rgba(0, 43, 92, 0.05);
+}
+
+:root[data-theme="light"] .search-input,
+:root[data-theme="light"] .filter-select {
+    background: #F0F7FF;
+    border: 1px solid rgba(0, 68, 204, 0.2);
+    color: var(--text-primary);
+}
+
+:root[data-theme="light"] .filter-select option {
+    background: #FFFFFF;
+    color: var(--text-primary);
+}
+
+:root[data-theme="light"] .search-input:focus,
+:root[data-theme="light"] .filter-select:focus {
+    border-color: #0044CC;
+    background: #FFFFFF;
+}
+
+:root[data-theme="light"] .history-table-container {
+    background: #FFFFFF;
+    border: 1px solid rgba(0, 43, 92, 0.1);
+    box-shadow: 0 10px 30px rgba(0, 43, 92, 0.05);
+}
+
+:root[data-theme="light"] .history-table th {
+    background: #F0F7FF;
+    color: #002B5C;
+    border-bottom: 2px solid rgba(0, 68, 204, 0.1);
+}
+
+:root[data-theme="light"] .history-table td {
+    border-bottom: 1px solid rgba(0, 43, 92, 0.05);
+    color: var(--text-secondary);
+}
+
+:root[data-theme="light"] .history-table tr:hover {
+    background: #F8FBFF;
+}
+
+:root[data-theme="light"] .history-table td:first-child {
+    color: var(--text-primary);
+}
+
+:root[data-theme="light"] .table-badge.fake {
+    background: rgba(0, 68, 204, 0.1);
+    color: #0044CC;
+    border: 1px solid rgba(0, 68, 204, 0.2);
+}
+
+:root[data-theme="light"] .table-badge.real {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+:root[data-theme="light"] .confidence-fill-small {
+    background: #0044CC;
+}
+
+:root[data-theme="light"] .confidence-bar-small {
+    background: rgba(0, 68, 204, 0.1);
+}
+
+/* Fix Action Buttons in Table */
+:root[data-theme="light"] .btn-table-action {
+    background: #F0F7FF;
+    border: 1px solid rgba(0, 68, 204, 0.2);
+    color: #0044CC;
+}
+
+:root[data-theme="light"] .btn-table-action:hover {
+    background: #0044CC;
+    color: #FFFFFF;
+}
+
+:root[data-theme="light"] .btn-table-delete {
+    background: rgba(255, 59, 48, 0.05);
+    border-color: rgba(255, 59, 48, 0.3);
+    color: #ff3b30;
+}
+
+:root[data-theme="light"] .btn-table-delete:hover {
+    background: #ff3b30;
+    color: #FFFFFF;
+}
+
+:root[data-theme="light"] .btn-export {
+    background: #F0F7FF;
+    color: #0044CC;
+    border: 1px solid rgba(0, 68, 204, 0.2);
+}
+
+:root[data-theme="light"] .btn-export:hover {
+    background: #0044CC;
+    color: #FFFFFF;
+}
+
+:root[data-theme="light"] .btn-clear-all {
+    background: rgba(255, 0, 0, 0.05);
+    color: #FF0000;
+    border: 1px solid rgba(255, 0, 0, 0.2);
+}
+
+:root[data-theme="light"] .btn-clear-all:hover {
+    background: #FF0000;
+    color: #FFFFFF;
+}
+
+:root[data-theme="light"] .results-count {
+    color: var(--text-secondary);
+}
+
+:root[data-theme="light"] .results-count span {
+    color: #0044CC;
+}
+
+/* Recent Analysis Cards Overrides */
+:root[data-theme="light"] .recent-card {
+    background: #FFFFFF;
+    border: 1px solid rgba(0, 43, 92, 0.1);
+    box-shadow: 0 10px 30px rgba(0, 43, 92, 0.05);
+}
+
+:root[data-theme="light"] .recent-card:hover {
+    box-shadow: 0 15px 40px rgba(0, 68, 204, 0.1);
+    border-color: #0044CC;
+    transform: translateY(-5px);
+}
+
+:root[data-theme="light"] .recent-card-title {
+    color: var(--text-primary);
+}
+
+:root[data-theme="light"] .recent-date,
+:root[data-theme="light"] .recent-confidence-label {
+    color: var(--text-secondary);
+}
+
+:root[data-theme="light"] .recent-confidence-bar {
+    background: rgba(0, 68, 204, 0.1);
+}
+
+:root[data-theme="light"] .recent-confidence-fill {
+    background: #0044CC;
+}
+
+:root[data-theme="light"] .recent-badge.fake {
+    background: rgba(0, 68, 204, 0.1);
+    color: #0044CC;
+    border: 1px solid rgba(0, 68, 204, 0.2);
+}
+
+:root[data-theme="light"] .recent-badge.real {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+:root[data-theme="light"] .recent-grid-empty {
+    background: #FFFFFF;
+    border: 1px dashed rgba(0, 68, 204, 0.2);
+    color: var(--text-secondary);
+}
+
+:root[data-theme="light"] .recent-grid-empty-icon {
+    filter: grayscale(1) opacity(0.5);
+}
+
 
 body {
     font-family: var(--font-primary);
@@ -180,6 +647,15 @@ body {
     background-size: 50px 50px;
     z-index: -1;
     mask-image: radial-gradient(circle at 50% 50%, black 40%, transparent 100%);
+}
+
+:root[data-theme="light"] .mesh-background {
+    background-image:
+        linear-gradient(rgba(0, 174, 239, 0.15) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 174, 239, 0.15) 1px, transparent 1px);
+    /* Cyan Grid Lines */
+    /* Light mode mask might need to be less aggressive or inverted if white bg? */
+    /* Actually black mask works for transparency on white too. */
 }
 
 @keyframes meshMove {
@@ -322,6 +798,32 @@ body {
 
 .nav-menu a:hover::after {
     width: 100%;
+}
+
+/* ==================== THEME TOGGLE ==================== */
+.theme-toggle-btn {
+    background: rgba(255, 255, 255, 0.05);
+    /* Transparent */
+    border: 1px solid var(--border-light);
+    color: var(--text-primary);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 20px;
+    margin-left: 16px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(10px);
+}
+
+.theme-toggle-btn:hover {
+    background: var(--text-primary);
+    color: var(--primary-bg);
+    transform: rotate(180deg);
+    border-color: var(--text-primary);
 }
 
 /* ==================== BUTTONS ====================*/
@@ -600,7 +1102,48 @@ select:focus {
     opacity: 0.15;
 }
 
+:root[data-theme="light"] .orb-1,
+:root[data-theme="light"] .orb-2,
+:root[data-theme="light"] .orb-3 {
+    background: radial-gradient(circle, #00AEEF, transparent 70%);
+    /* Cyan Orbs */
+    opacity: 0.2;
+}
+
 /* ==================== FLOATING 3D OBJECTS ==================== */
+/* Light Mode Overrides for 3D Objects */
+:root[data-theme="light"] .cube-face {
+    background: rgba(0, 174, 239, 0.08);
+    /* Cyan tint */
+    border: 1px solid rgba(0, 174, 239, 0.3);
+}
+
+:root[data-theme="light"] .pyramid-face {
+    background: rgba(0, 68, 204, 0.1);
+    /* Blue tint */
+    border: 1px solid rgba(0, 68, 204, 0.4);
+}
+
+:root[data-theme="light"] .pyramid-front,
+:root[data-theme="light"] .pyramid-back {
+    border-bottom: 100px solid rgba(0, 68, 204, 0.1);
+    border-bottom-color: rgba(0, 68, 204, 0.15);
+}
+
+:root[data-theme="light"] .pyramid-left {
+    border-right: 100px solid rgba(0, 68, 204, 0.1);
+    border-right-color: rgba(0, 68, 204, 0.15);
+}
+
+:root[data-theme="light"] .pyramid-right {
+    border-left: 100px solid rgba(0, 68, 204, 0.1);
+    border-left-color: rgba(0, 68, 204, 0.15);
+}
+
+:root[data-theme="light"] .pyramid-base {
+    background: rgba(0, 68, 204, 0.08);
+}
+
 .floating-3d-object {
     position: absolute;
     transform-style: preserve-3d;
@@ -821,7 +1364,8 @@ html.lenis {
 .showcase-item,
 .tech-card {
     position: relative;
-    background: rgba(26, 26, 26, 1); /* Fallback */
+    background: rgba(26, 26, 26, 1);
+    /* Fallback */
     background: linear-gradient(145deg, #1A1A1A, #111111);
     border: 1px solid rgba(255, 255, 255, 0.05);
     overflow: hidden;
@@ -840,11 +1384,9 @@ html.lenis {
     left: 0;
     width: 100%;
     height: 100%;
-    background: radial-gradient(
-        800px circle at var(--mouse-x) var(--mouse-y),
-        rgba(255, 255, 255, 0.06),
-        transparent 40%
-    );
+    background: radial-gradient(800px circle at var(--mouse-x) var(--mouse-y),
+            rgba(255, 255, 255, 0.06),
+            transparent 40%);
     z-index: 2;
     pointer-events: none;
     transition: opacity 0.5s ease;
@@ -867,11 +1409,9 @@ html.lenis {
     left: 0;
     width: 100%;
     height: 100%;
-    background: radial-gradient(
-        600px circle at var(--mouse-x) var(--mouse-y),
-        rgba(227, 245, 20, 0.3),
-        transparent 40%
-    );
+    background: radial-gradient(600px circle at var(--mouse-x) var(--mouse-y),
+            rgba(227, 245, 20, 0.3),
+            transparent 40%);
     z-index: 1;
     pointer-events: none;
     opacity: 0;
@@ -886,38 +1426,69 @@ html.lenis {
 }
 
 
+/* Light Mode Spotlight Adjustments */
+:root[data-theme="light"] .feature-card,
+:root[data-theme="light"] .showcase-item,
+:root[data-theme="light"] .tech-card {
+    background: #FFFFFF !important;
+    /* Force override gradient */
+}
+
+:root[data-theme="light"] .feature-card::before,
+:root[data-theme="light"] .showcase-item::before,
+:root[data-theme="light"] .tech-card::before {
+    background: radial-gradient(800px circle at var(--mouse-x) var(--mouse-y),
+            rgba(0, 43, 92, 0.03),
+            /* Subtle Blue Glow */
+            transparent 40%);
+}
+
+:root[data-theme="light"] .feature-card::after,
+:root[data-theme="light"] .showcase-item::after,
+:root[data-theme="light"] .tech-card::after {
+    background: radial-gradient(600px circle at var(--mouse-x) var(--mouse-y),
+            rgba(0, 174, 239, 0.2),
+            /* Cyan Border Glow */
+            transparent 40%);
+}
+
 /* 3. MAGNETIC BUTTONS (Utility) */
 /* Already handled in JS with transforms, but adding smooth reset */
-.btn-primary, .btn-hero-primary {
+.btn-primary,
+.btn-hero-primary {
     transition: transform 0.1s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease, background 0.3s ease;
 }
 
 
 /* 4. TEXT REVEAL ANIMATIONS */
 /* Basic Staggered Reveal for Titles */
-.hero-title, .section-title {
+.hero-title,
+.section-title {
     opacity: 0;
     transform: translateY(30px);
     transition: opacity 0.8s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.hero-title.in-view, .section-title.in-view {
+.hero-title.in-view,
+.section-title.in-view {
     opacity: 1;
     transform: translateY(0);
 }
 
 /* Stagger delay for section subtitle */
 .section-subtitle {
-     opacity: 0;
-     transform: translateY(20px);
-     transition: opacity 0.8s ease 0.2s, transform 0.8s ease 0.2s;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.8s ease 0.2s, transform 0.8s ease 0.2s;
 }
 
-.section-title.in-view + .section-subtitle,
-.section-header:hover .section-subtitle { /* Approximate trigger or use JS to trigger parent */
+.section-title.in-view+.section-subtitle,
+.section-header:hover .section-subtitle {
+    /* Approximate trigger or use JS to trigger parent */
     opacity: 1;
     transform: translateY(0);
 }
+
 /* Better: Let JS handle parent class or sibling trigger. 
    For simplicity, we'll let existing AOS handle the subtitle or use the observer on it too if desired.
    However, let's fix the implementation to be robust. 
@@ -929,8 +1500,15 @@ html.lenis {
 }
 
 @keyframes revealUp {
-    from { opacity: 0; transform: translateY(40px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(40px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .hero-reveal-container {
