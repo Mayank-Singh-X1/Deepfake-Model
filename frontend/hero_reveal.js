@@ -181,6 +181,15 @@ class HeroFluidReveal {
         this.drawBlobPath(time, velocity.velX, velocity.velY);
         this.ctx.clip();
 
+        // Apply theme-based filter
+        const theme = document.documentElement.getAttribute('data-theme');
+        if (theme === 'light') {
+            // Rotates Yellow (~60deg) to Blue (~240deg) -> +180deg
+            this.ctx.filter = 'hue-rotate(190deg) brightness(1.1) saturate(1.2)';
+        } else {
+            this.ctx.filter = 'none';
+        }
+
         if (this.revealImg && this.revealImg.complete) {
             this.drawImageCover(this.revealImg);
         }

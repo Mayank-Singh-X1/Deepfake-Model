@@ -20,14 +20,34 @@ function initThreeBackground() {
     renderer.setClearColor(0x000000, 0); // Transparent background
     container.appendChild(renderer.domElement);
 
-    // PARTICLES (STARS)
+    // Theme Check
+    const getThemeColors = () => {
+        const theme = localStorage.getItem('theme') || 'dark';
+        if (theme === 'light') {
+            return {
+                primary: 0x00AEEF, // Cyan
+                secondary: 0x0044CC, // Blue
+                gridPrimary: 0x00AEEF, // Cyan Grid
+                gridSecondary: 0xE0E0E0 // Light Grey Grid
+            };
+        }
+        return {
+            primary: 0xE3F514, // Nano Yellow
+            secondary: 0xFFFFFF, // White
+            gridPrimary: 0xE3F514, // Nano Yellow Grid
+            gridSecondary: 0x333333 // Dark Grey Grid
+        };
+    };
+
+    let themeColors = getThemeColors();
+
     const geometry = new THREE.BufferGeometry();
     const count = 2000;
     const vertices = [];
     const colors = [];
 
-    const color1 = new THREE.Color(0xE3F514); // Nano Yellow
-    const color2 = new THREE.Color(0xFFFFFF); // White
+    const color1 = new THREE.Color(themeColors.primary);
+    const color2 = new THREE.Color(themeColors.secondary);
 
     for (let i = 0; i < count; i++) {
         // Random position
@@ -65,7 +85,7 @@ function initThreeBackground() {
         else if (type === 'octahedron') geometry = new THREE.OctahedronGeometry(size, 0);
 
         const material = new THREE.MeshBasicMaterial({
-            color: 0xE3F514,
+            color: themeColors.primary,
             wireframe: true,
             transparent: true,
             opacity: 0.15
@@ -86,11 +106,60 @@ function initThreeBackground() {
     // 3. INTERACTIVE 3D GRID FLOOR
     const gridSize = 2000;
     const gridDivisions = 40;
-    const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, 0xE3F514, 0x333333);
+    // Change const to let to allow reassignment
+    let gridHelper = new THREE.GridHelper(gridSize, gridDivisions, themeColors.gridPrimary, themeColors.gridSecondary);
     gridHelper.position.y = -200; // Floor level
     gridHelper.material.transparent = true;
     gridHelper.material.opacity = 0.15;
     scene.add(gridHelper);
+
+    // Watch for theme changes
+    // Store initial theme to avoid redundant updates on load
+    let currentTheme = localStorage.getItem('theme') || 'dark';
+
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+                const newTheme = document.documentElement.getAttribute('data-theme');
+
+                // Prevent infinite loop relative to initial set or same-value updates
+                if (newTheme === currentTheme) return;
+                currentTheme = newTheme;
+
+                const isLight = newTheme === 'light';
+
+                const newPrim = new THREE.Color(isLight ? 0x00AEEF : 0xE3F514);
+                const newSec = new THREE.Color(isLight ? 0x0044CC : 0xFFFFFF);
+
+                // Update Particles
+                const newColors = [];
+                for (let i = 0; i < count; i++) {
+                    const mixedColor = newPrim.clone().lerp(newSec, Math.random() * 0.5);
+                    newColors.push(mixedColor.r, mixedColor.g, mixedColor.b);
+                }
+                particles.geometry.setAttribute('color', new THREE.Float32BufferAttribute(newColors, 3));
+                particles.geometry.attributes.color.needsUpdate = true;
+
+                // Update Shapes
+                shapes.forEach(shape => {
+                    shape.material.color.set(newPrim);
+                });
+
+                // Update Grid
+                scene.remove(gridHelper);
+                // Create new grid using standard ThreeJS helper for fixed geometry colors
+                gridHelper = new THREE.GridHelper(gridSize, gridDivisions, isLight ? 0x00AEEF : 0xE3F514, isLight ? 0xE0E0E0 : 0x333333);
+                gridHelper.position.y = -200;
+                gridHelper.material.transparent = true;
+                gridHelper.material.opacity = 0.15;
+                scene.add(gridHelper);
+            }
+        });
+    });
+
+    observer.observe(document.documentElement, { attributes: true });
+
+
 
     // MOUSE INTERACTION
     let mouseX = 0;
