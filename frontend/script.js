@@ -1,6 +1,14 @@
 // ==================== ENHANCED LOADER SYSTEM ====================
 // Moved to loader.js
 
+// API URL Configuration
+// In production (Vercel), this should point to the Hugging Face Spaces URL
+// Example: https://huggingface.co/spaces/username/space-name/api
+const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? ''
+    : 'https://YOUR-HUGGINGFACE-SPACE-URL.hf.space'; // REPLACE THIS AFTER DEPLOYING BACKEND
+
+
 
 // ==================== AUDIO SYSTEM ====================
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -950,7 +958,14 @@ async function handleAnalysisUpload(file) {
 
         const startTime = performance.now(); // Start timer
 
-        const response = await fetch('/api/predict', {
+        // API URL Configuration
+        // In production (Vercel), this should point to the Hugging Face Spaces URL
+        // Example: https://huggingface.co/spaces/username/space-name/api
+        // const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        //     ? ''
+        //     : 'https://YOUR-HUGGINGFACE-SPACE-URL.hf.space'; // REPLACE THIS AFTER DEPLOYING BACKEND
+
+        const response = await fetch(`${API_BASE_URL}/api/predict`, {
             method: 'POST',
             body: formData
         });
@@ -1456,7 +1471,7 @@ async function loadHistory() {
     if (!historyList) return;
 
     try {
-        const response = await fetch('/api/history');
+        const response = await fetch(`${API_BASE_URL}/api/history`);
         const history = await response.json();
 
         if (history.length > 0) {
@@ -1658,7 +1673,7 @@ async function deleteScan(scanId, event) {
     }
 
     try {
-        const response = await fetch(`/api/history/${scanId}`, { method: 'DELETE' });
+        const response = await fetch(`${API_BASE_URL}/api/history/${scanId}`, { method: 'DELETE' });
         if (response.ok) {
             // Remove the card from DOM directly instead of reloading
             if (targetCard) {
@@ -1696,7 +1711,7 @@ async function clearHistory() {
     if (!confirm('Are you sure you want to clear all history?')) return;
 
     try {
-        await fetch('/api/history', { method: 'DELETE' });
+        await fetch(`${API_BASE_URL}/api/history`, { method: 'DELETE' });
         loadHistory(); // Reload UI
     } catch (err) {
         console.error('Failed to clear history:', err);
@@ -1924,7 +1939,7 @@ async function uploadSingleFile(fileObj) {
 
             xhr.addEventListener('error', () => reject(new Error('Network error')));
 
-            xhr.open('POST', '/api/predict');
+            xhr.open('POST', `${API_BASE_URL}/api/predict`);
             xhr.send(formData);
         });
 
@@ -1957,7 +1972,7 @@ async function uploadSingleFile(fileObj) {
 // ==================== STATISTICS AND RECENT ANALYSES ====================
 async function loadStatisticsAndRecent() {
     try {
-        const response = await fetch('/api/history');
+        const response = await fetch(`${API_BASE_URL}/api/history`);
         const history = await response.json();
 
         // Calculate statistics
@@ -2034,7 +2049,7 @@ async function loadEnhancedHistory() {
     if (!tableBody) return; // Not on history page
 
     try {
-        const response = await fetch('/api/history');
+        const response = await fetch(`${API_BASE_URL}/api/history`);
         fullHistoryData = await response.json();
         filteredHistoryData = [...fullHistoryData];
 
@@ -2242,7 +2257,7 @@ async function deleteHistoryItem(id) {
     }
 
     try {
-        const response = await fetch(`/api/history/${id}`, { method: 'DELETE' });
+        const response = await fetch(`${API_BASE_URL}/api/history/${id}`, { method: 'DELETE' });
         if (response.ok) {
             setTimeout(() => {
                 fullHistoryData = fullHistoryData.filter(item => item.id !== id);
