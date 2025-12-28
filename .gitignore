@@ -6,3 +6,4 @@ __pycache__/
 database.db
 history_uploads/
 huggingface_deploy/
+model repo huggingface/
