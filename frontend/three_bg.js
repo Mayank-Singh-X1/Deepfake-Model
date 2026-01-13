@@ -42,7 +42,7 @@ function initThreeBackground() {
     let themeColors = getThemeColors();
 
     const geometry = new THREE.BufferGeometry();
-    const count = 2000;
+    const count = 1200;
     const vertices = [];
     const colors = [];
 

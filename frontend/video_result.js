@@ -1,0 +1,623 @@
+// Video Result Page - Enhanced Functionality
+// ==========================================
+
+let videoPlayer;
+let currentResult = null;
+let chart = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize
+    videoPlayer = document.getElementById('videoPlayer');
+
+    // Retrieve results from localStorage
+    const resultData = localStorage.getItem('video_analysis_result');
+
+    if (!resultData) {
+        alert('No analysis results found. Redirecting to home.');
+        window.location.href = 'index.html';
+        return;
+    }
+
+    currentResult = JSON.parse(resultData);
+
+    // Initialize everything
+    initializeVideoPlayer();
+    populateUI(currentResult);
+    setupVideoControls();
+    setupDownloadButton();
+
+    // Hide loading overlay
+    setTimeout(() => {
+        document.getElementById('loadingOverlay').classList.add('hidden');
+    }, 500);
+});
+
+// ==========================================
+// VIDEO PLAYER INITIALIZATION
+// ==========================================
+
+function initializeVideoPlayer() {
+    // Set video source if available
+    // Try multiple sources in order of priority
+    if (currentResult && currentResult.video_url) {
+        videoPlayer.src = currentResult.video_url;
+    } else if (currentResult && currentResult.image_path) {
+        // If image_path is provided (from backend), use it as video source
+        videoPlayer.src = currentResult.image_path;
+    } else {
+        console.warn('No video source available in result data');
+        // Show a placeholder message if no video is available
+        const videoWrapper = document.querySelector('.video-wrapper');
+        if (videoWrapper) {
+            const placeholder = document.createElement('div');
+            placeholder.style.cssText = `
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                text-align: center;
+                color: rgba(255, 255, 255, 0.6);
+                z-index: 5;
+            `;
+            placeholder.innerHTML = `
+                <i class="fas fa-video-slash" style="font-size: 4rem; margin-bottom: 1rem; display: block; color: rgba(227, 245, 20, 0.3);"></i>
+                <p style="font-size: 1.1rem;">Video source not available</p>
+                <p style="font-size: 0.9rem; margin-top: 0.5rem;">The video file could not be loaded</p>
+            `;
+            videoWrapper.appendChild(placeholder);
+        }
+    }
+
+    // Video event listeners
+    videoPlayer.addEventListener('loadedmetadata', () => {
+        updateDuration();
+    });
+
+    videoPlayer.addEventListener('timeupdate', () => {
+        updateProgress();
+        updateTimeDisplay();
+    });
+
+    videoPlayer.addEventListener('ended', () => {
+        document.querySelector('#playPauseBtn i').className = 'fas fa-redo';
+    });
+
+    // Error handling
+    videoPlayer.addEventListener('error', (e) => {
+        console.error('Video load error:', e);
+        const videoWrapper = document.querySelector('.video-wrapper');
+        if (videoWrapper) {
+            const errorMsg = document.createElement('div');
+            errorMsg.style.cssText = `
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                text-align: center;
+                color: rgba(255, 51, 51, 0.8);
+                z-index: 5;
+            `;
+            errorMsg.innerHTML = `
+                <i class="fas fa-exclamation-triangle" style="font-size: 4rem; margin-bottom: 1rem; display: block;"></i>
+                <p style="font-size: 1.1rem;">Failed to load video</p>
+                <p style="font-size: 0.9rem; margin-top: 0.5rem;">The video format may not be supported</p>
+            `;
+            videoWrapper.appendChild(errorMsg);
+        }
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT') return;
+
+        switch (e.key) {
+            case ' ':
+                e.preventDefault();
+                togglePlay();
+                break;
+            case 'ArrowLeft':
+                e.preventDefault();
+                videoPlayer.currentTime = Math.max(0, videoPlayer.currentTime - 5);
+                break;
+            case 'ArrowRight':
+                e.preventDefault();
+                videoPlayer.currentTime = Math.min(videoPlayer.duration, videoPlayer.currentTime + 5);
+                break;
+            case 'f':
+                toggleFullscreen();
+                break;
+            case 'm':
+                toggleMute();
+                break;
+        }
+    });
+}
+
+// ==========================================
+// VIDEO CONTROLS
+// ==========================================
+
+function setupVideoControls() {
+    // Play/Pause
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    playPauseBtn.addEventListener('click', togglePlay);
+
+    // Progress bar
+    const progressContainer = document.getElementById('progressContainer');
+    progressContainer.addEventListener('click', seek);
+
+    // Frame navigation
+    document.getElementById('prevFrameBtn').addEventListener('click', () => {
+        videoPlayer.currentTime = Math.max(0, videoPlayer.currentTime - (1 / 30)); // Assuming 30fps
+    });
+
+    document.getElementById('nextFrameBtn').addEventListener('click', () => {
+        videoPlayer.currentTime = Math.min(videoPlayer.duration, videoPlayer.currentTime + (1 / 30));
+    });
+
+    // Volume
+    const volumeSlider = document.getElementById('volumeSlider');
+    const muteBtn = document.getElementById('muteBtn');
+
+    volumeSlider.addEventListener('input', (e) => {
+        const volume = e.target.value / 100;
+        videoPlayer.volume = volume;
+        updateVolumeIcon(volume);
+    });
+
+    muteBtn.addEventListener('click', toggleMute);
+
+    // Speed control
+    const speedBtn = document.getElementById('speedBtn');
+    const speedMenu = document.getElementById('speedMenu');
+
+    speedBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        speedMenu.classList.toggle('active');
+    });
+
+    document.addEventListener('click', () => {
+        speedMenu.classList.remove('active');
+    });
+
+    document.querySelectorAll('.speed-option').forEach(option => {
+        option.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const speed = parseFloat(e.target.dataset.speed);
+            videoPlayer.playbackRate = speed;
+
+            document.querySelectorAll('.speed-option').forEach(opt => opt.classList.remove('active'));
+            e.target.classList.add('active');
+            speedMenu.classList.remove('active');
+        });
+    });
+
+    // Fullscreen
+    document.getElementById('fullscreenBtn').addEventListener('click', toggleFullscreen);
+
+    // Video click to play/pause
+    videoPlayer.addEventListener('click', togglePlay);
+}
+
+function togglePlay() {
+    if (videoPlayer.paused) {
+        videoPlayer.play();
+        document.querySelector('#playPauseBtn i').className = 'fas fa-pause';
+    } else {
+        videoPlayer.pause();
+        document.querySelector('#playPauseBtn i').className = 'fas fa-play';
+    }
+}
+
+function seek(e) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const percent = (e.clientX - rect.left) / rect.width;
+    videoPlayer.currentTime = percent * videoPlayer.duration;
+}
+
+function toggleMute() {
+    videoPlayer.muted = !videoPlayer.muted;
+    updateVolumeIcon(videoPlayer.muted ? 0 : videoPlayer.volume);
+}
+
+function updateVolumeIcon(volume) {
+    const muteBtn = document.querySelector('#muteBtn i');
+    if (volume === 0) {
+        muteBtn.className = 'fas fa-volume-mute';
+    } else if (volume < 0.5) {
+        muteBtn.className = 'fas fa-volume-down';
+    } else {
+        muteBtn.className = 'fas fa-volume-up';
+    }
+}
+
+function toggleFullscreen() {
+    const container = document.querySelector('.video-player-container');
+
+    if (!document.fullscreenElement) {
+        container.requestFullscreen().catch(err => {
+            console.error('Fullscreen error:', err);
+        });
+        document.querySelector('#fullscreenBtn i').className = 'fas fa-compress';
+    } else {
+        document.exitFullscreen();
+        document.querySelector('#fullscreenBtn i').className = 'fas fa-expand';
+    }
+}
+
+function updateProgress() {
+    const percent = (videoPlayer.currentTime / videoPlayer.duration) * 100;
+    document.getElementById('progressBar').style.width = percent + '%';
+}
+
+function updateTimeDisplay() {
+    document.getElementById('currentTime').textContent = formatTime(videoPlayer.currentTime);
+}
+
+function updateDuration() {
+    document.getElementById('duration').textContent = formatTime(videoPlayer.duration);
+}
+
+function formatTime(seconds) {
+    if (isNaN(seconds)) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+// ==========================================
+// UI POPULATION
+// ==========================================
+
+function populateUI(result) {
+    // Verdict
+    const isFake = result.prediction === 'FAKE';
+    const title = document.getElementById('verdictTitle');
+    const bar = document.getElementById('confidenceBar');
+    const val = document.getElementById('confidenceValue');
+
+    title.textContent = isFake ? 'FAKE VIDEO DETECTED' : 'AUTHENTIC VIDEO';
+    title.style.color = isFake ? '#ff3333' : '#10B981';
+
+    const conf = (result.confidence * 100).toFixed(1);
+
+    // Animate confidence bar
+    setTimeout(() => {
+        bar.style.width = `${conf}%`;
+    }, 100);
+
+    bar.className = `meter-fill ${isFake ? 'fill-fake' : 'fill-real'}`;
+    val.textContent = `${conf}% Confidence`;
+
+    // Update verdict icon
+    const verdictIcon = document.querySelector('.verdict-icon');
+    if (isFake) {
+        verdictIcon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+        verdictIcon.style.background = 'linear-gradient(135deg, #ff3333 0%, #cc0000 100%)';
+    } else {
+        verdictIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
+        verdictIcon.style.background = 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
+    }
+
+    // Stats with animation
+    animateValue('videoDuration', 0, result.duration, `${result.duration.toFixed(1)}s`, 1000);
+    animateValue('framesProcessed', 0, result.processed_frames, result.processed_frames, 1000);
+    animateValue('suspiciousCount', 0, result.suspicious_frames.length, result.suspicious_frames.length, 1000);
+    animateValue('avgProb', 0, result.avg_fake_prob * 100, `${(result.avg_fake_prob * 100).toFixed(1)}%`, 1000);
+
+    // Notes
+    const notes = document.getElementById('analysisNotes');
+    if (isFake) {
+        notes.innerHTML = `
+            <div style="display: flex; align-items: start; gap: 12px; padding: 1rem; background: rgba(255, 51, 51, 0.1); border-left: 3px solid #ff3333; border-radius: 8px; margin-bottom: 1rem;">
+                <i class="fas fa-exclamation-circle" style="color: #ff3333; font-size: 24px; margin-top: 2px;"></i>
+                <div>
+                    <strong style="color: #ff3333; font-size: 1.1rem;">⚠️ Manipulation Detected</strong><br>
+                    <span style="margin-top: 8px; display: block;">High probability of synthetic frames found. The model detected artifacts consistent with deepfake generation techniques in ${result.fake_frame_ratio ? (result.fake_frame_ratio * 100).toFixed(0) : 0}% of the sampled frames.</span>
+                </div>
+            </div>
+            <p><strong>Detected Artifacts:</strong></p>
+            <ul style="margin-left: 1.5rem; margin-top: 0.5rem; line-height: 1.8;">
+                <li>Inconsistent temporal patterns across frames</li>
+                <li>Frequency domain anomalies</li>
+                <li>Unnatural facial features or lighting</li>
+            </ul>
+        `;
+    } else {
+        notes.innerHTML = `
+            <div style="display: flex; align-items: start; gap: 12px; padding: 1rem; background: rgba(16, 185, 129, 0.1); border-left: 3px solid #10B981; border-radius: 8px; margin-bottom: 1rem;">
+                <i class="fas fa-check-circle" style="color: #10B981; font-size: 24px; margin-top: 2px;"></i>
+                <div>
+                    <strong style="color: #10B981; font-size: 1.1rem;">✓ Authentic Media</strong><br>
+                    <span style="margin-top: 8px; display: block;">No significant signs of manipulation were detected. Frame consistency is high across all analyzed segments.</span>
+                </div>
+            </div>
+            <p><strong>Quality Indicators:</strong></p>
+            <ul style="margin-left: 1.5rem; margin-top: 0.5rem; line-height: 1.8;">
+                <li>Consistent temporal flow</li>
+                <li>Natural frequency patterns</li>
+                <li>Authentic visual characteristics</li>
+            </ul>
+        `;
+    }
+
+    // Chart
+    if (result.timeline) {
+        renderChart(result.timeline);
+        addFrameMarkers(result.timeline, result.duration);
+    }
+
+    // Frame Grid
+    if (result.timeline) {
+        renderFrameGrid(result.timeline, result.duration);
+    }
+}
+
+// ==========================================
+// CHART RENDERING
+// ==========================================
+
+function renderChart(timeline) {
+    const ctx = document.getElementById('timelineChart').getContext('2d');
+    const times = timeline.map(t => formatTime(t.time));
+    const probs = timeline.map(t => t.prob);
+
+    // Destroy existing chart if any
+    if (chart) {
+        chart.destroy();
+    }
+
+    chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: times,
+            datasets: [{
+                label: 'Fake Probability',
+                data: probs,
+                borderColor: '#E3F514',
+                backgroundColor: 'rgba(227, 245, 20, 0.1)',
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true,
+                pointRadius: 4,
+                pointHoverRadius: 8,
+                pointBackgroundColor: '#E3F514',
+                pointBorderColor: '#000',
+                pointBorderWidth: 2,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            onClick: (event, elements) => {
+                if (elements.length > 0) {
+                    const index = elements[0].index;
+                    const time = timeline[index].time;
+                    videoPlayer.currentTime = time;
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 1.0,
+                    grid: {
+                        color: 'rgba(255,255,255,0.05)',
+                        drawBorder: false
+                    },
+                    ticks: {
+                        color: '#888',
+                        callback: function (value) {
+                            return (value * 100).toFixed(0) + '%';
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Fake Probability',
+                        color: '#888'
+                    }
+                },
+                x: {
+                    grid: {
+                        color: 'rgba(255,255,255,0.05)',
+                        drawBorder: false
+                    },
+                    ticks: {
+                        color: '#888',
+                        maxTicksLimit: 10
+                    },
+                    title: {
+                        display: true,
+                        text: 'Time',
+                        color: '#888'
+                    }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                    titleColor: '#E3F514',
+                    bodyColor: '#fff',
+                    borderColor: 'rgba(227, 245, 20, 0.3)',
+                    borderWidth: 1,
+                    padding: 12,
+                    displayColors: false,
+                    callbacks: {
+                        title: (context) => `Time: ${context[0].label}`,
+                        label: (ctx) => `Probability: ${(ctx.raw * 100).toFixed(1)}%`,
+                        afterLabel: (ctx) => {
+                            const prob = ctx.raw;
+                            if (prob > 0.5) {
+                                return 'Status: Suspicious ⚠️';
+                            } else {
+                                return 'Status: Clean ✓';
+                            }
+                        }
+                    }
+                }
+            },
+            animation: {
+                duration: 2000,
+                easing: 'easeInOutQuart'
+            }
+        }
+    });
+}
+
+// ==========================================
+// FRAME MARKERS
+// ==========================================
+
+function addFrameMarkers(timeline, duration) {
+    const progressContainer = document.getElementById('progressContainer');
+
+    timeline.forEach(frame => {
+        if (frame.prob > 0.5) { // Suspicious frames
+            const marker = document.createElement('div');
+            marker.className = 'frame-marker';
+            marker.style.left = ((frame.time / duration) * 100) + '%';
+            marker.title = `Suspicious frame at ${formatTime(frame.time)}`;
+
+            marker.addEventListener('click', (e) => {
+                e.stopPropagation();
+                videoPlayer.currentTime = frame.time;
+            });
+
+            progressContainer.appendChild(marker);
+        }
+    });
+}
+
+// ==========================================
+// FRAME GRID
+// ==========================================
+
+function renderFrameGrid(timeline, duration) {
+    const frameGrid = document.getElementById('frameGrid');
+    frameGrid.innerHTML = '';
+
+    timeline.forEach((frame, index) => {
+        const frameItem = document.createElement('div');
+        frameItem.className = 'frame-item' + (frame.prob > 0.5 ? ' suspicious' : '');
+
+        frameItem.innerHTML = `
+            <div class="frame-thumbnail" style="display: flex; align-items: center; justify-content: center; color: #666; font-size: 0.9rem;">
+                <i class="fas fa-film" style="font-size: 2rem;"></i>
+            </div>
+            <div class="frame-badge ${frame.prob > 0.5 ? 'suspicious' : 'clean'}">
+                ${frame.prob > 0.5 ? '⚠️ ' + (frame.prob * 100).toFixed(0) + '%' : '✓ ' + ((1 - frame.prob) * 100).toFixed(0) + '%'}
+            </div>
+            <div class="frame-info">
+                <span class="frame-time">${formatTime(frame.time)}</span>
+                <span class="frame-confidence">${(frame.prob * 100).toFixed(1)}%</span>
+            </div>
+        `;
+
+        frameItem.addEventListener('click', () => {
+            videoPlayer.currentTime = frame.time;
+            videoPlayer.play();
+        });
+
+        frameGrid.appendChild(frameItem);
+    });
+}
+
+// ==========================================
+// ANIMATIONS
+// ==========================================
+
+function animateValue(id, start, end, suffix, duration) {
+    const element = document.getElementById(id);
+    const startTime = performance.now();
+    const isPercentage = typeof suffix === 'string' && suffix.includes('%');
+
+    function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // Easing function
+        const easeOut = 1 - Math.pow(1 - progress, 3);
+        const current = start + (end - start) * easeOut;
+
+        if (isPercentage) {
+            element.textContent = suffix;
+        } else if (typeof suffix === 'string') {
+            element.textContent = suffix;
+        } else {
+            element.textContent = Math.floor(current);
+        }
+
+        if (progress < 1) {
+            requestAnimationFrame(update);
+        } else {
+            element.textContent = suffix;
+        }
+    }
+
+    requestAnimationFrame(update);
+}
+
+// ==========================================
+// DOWNLOAD REPORT
+// ==========================================
+
+function setupDownloadButton() {
+    const downloadBtn = document.getElementById('downloadReportBtn');
+
+    downloadBtn.addEventListener('click', async () => {
+        const originalText = downloadBtn.innerHTML;
+        downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating Report...';
+        downloadBtn.disabled = true;
+
+        try {
+            await generatePDFReport();
+            downloadBtn.innerHTML = '<i class="fas fa-check"></i> Report Downloaded!';
+
+            setTimeout(() => {
+                downloadBtn.innerHTML = originalText;
+                downloadBtn.disabled = false;
+            }, 3000);
+        } catch (error) {
+            console.error('Error generating report:', error);
+            downloadBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error Generating Report';
+
+            setTimeout(() => {
+                downloadBtn.innerHTML = originalText;
+                downloadBtn.disabled = false;
+            }, 3000);
+        }
+    });
+}
+
+async function generatePDFReport() {
+    // For now, create a simple JSON download
+    // Full PDF generation would require jsPDF library properly configured
+    const reportData = {
+        timestamp: new Date().toISOString(),
+        verdict: currentResult.prediction,
+        confidence: currentResult.confidence,
+        duration: currentResult.duration,
+        framesProcessed: currentResult.processed_frames,
+        suspiciousFrames: currentResult.suspicious_frames.length,
+        avgFakeProbability: currentResult.avg_fake_prob,
+        timeline: currentResult.timeline,
+        notes: document.getElementById('analysisNotes').textContent
+    };
+
+    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `deepguard-video-report-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    // TODO: Implement actual PDF generation using jsPDF
+    // This would capture charts and create a branded PDF report
+}
