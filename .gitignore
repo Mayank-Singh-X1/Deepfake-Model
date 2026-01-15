@@ -39,3 +39,7 @@ uploads/
 history_uploads/
 video_batch_results.csv
 *.bak
+
+# Documentation
+documentation/
+README.md
