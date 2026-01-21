@@ -518,9 +518,13 @@ function renderFrameGrid(timeline, duration) {
         const frameItem = document.createElement('div');
         frameItem.className = 'frame-item' + (frame.prob > 0.5 ? ' suspicious' : '');
 
+        const thumbContent = frame.thumbnail
+            ? `<img src="data:image/jpeg;base64,${frame.thumbnail}" style="width: 100%; height: 100%; object-fit: cover;">`
+            : `<i class="fas fa-film" style="font-size: 2rem;"></i>`;
+
         frameItem.innerHTML = `
-            <div class="frame-thumbnail" style="display: flex; align-items: center; justify-content: center; color: #666; font-size: 0.9rem;">
-                <i class="fas fa-film" style="font-size: 2rem;"></i>
+            <div class="frame-thumbnail" style="display: flex; align-items: center; justify-content: center; color: #666; font-size: 0.9rem; overflow: hidden; background: #000;">
+                ${thumbContent}
             </div>
             <div class="frame-badge ${frame.prob > 0.5 ? 'suspicious' : 'clean'}">
                 ${frame.prob > 0.5 ? '⚠️ ' + (frame.prob * 100).toFixed(0) + '%' : '✓ ' + ((1 - frame.prob) * 100).toFixed(0) + '%'}
@@ -626,7 +630,7 @@ async function generatePDFReport() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `deepguard-video-report-${Date.now()}.json`;
+    a.download = `deepguard - video - report - ${Date.now()}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

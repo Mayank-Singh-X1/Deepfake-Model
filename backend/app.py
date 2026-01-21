@@ -1,7 +1,10 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, Response, make_response
 from flask_cors import CORS
 import sys
 import os
+import re
+import mimetypes
+import subprocess
 
 # Add model directory to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'model')))
@@ -45,7 +48,8 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(HISTORY_FOLDER, exist_ok=True)
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # Increase to 500MB for video
 
 # Global model and transform
 device = torch.device(Config.DEVICE)
@@ -117,7 +121,7 @@ def allowed_file(filename):
 def predict_image(image_path):
     """Make prediction on a single image"""
     if model is None:
-        return None, "Error: Model not loaded. Check backend logs for 'best_finetuned_datasetB.safetensors' error."
+        return None, "Error: Model not loaded. Check backend logs for 'best_model.safetensors' error."
 
     try:
         # Read and preprocess image
@@ -200,19 +204,104 @@ def index():
 
 @app.route('/history_uploads/<path:filename>')
 def serve_history_image(filename):
-    """Serve history images"""
-    # guess mime type based on extension
-    # mimetype = None
-    # if filename.lower().endswith('.mp4'):
-    #     mimetype = 'video/mp4'
-    # return send_from_directory(HISTORY_FOLDER, filename, mimetype=mimetype)
-    
-    # Actually, Flask's send_from_directory should handle it, but sometimes it needs help on some OSs
-    # or if the registry is incomplete.
+    """Serve history images and videos with Range support"""
+    file_path = os.path.join(HISTORY_FOLDER, filename)
+    if not os.path.exists(file_path):
+        return jsonify({'error': 'File not found'}), 404
+
+    # Handle Video Range Requests
+    if filename.lower().endswith(('.mp4', '.mov', '.avi', '.webm')):
+        file_size = os.path.getsize(file_path)
+        range_header = request.headers.get('Range', None)
+        
+        if not range_header:
+            # No Range header, serve normally but with video headers
+            response = make_response(send_from_directory(HISTORY_FOLDER, filename))
+            response.headers['Content-Type'] = 'video/mp4'
+            response.headers['Accept-Ranges'] = 'bytes'
+            return response
+            
+        # Parse Range Header
+        byte1, byte2 = 0, None
+        m = re.search('bytes=(\d+)-(\d*)', range_header)
+        if m:
+            g = m.groups()
+            byte1 = int(g[0])
+            if g[1]:
+                byte2 = int(g[1])
+
+        length = file_size - byte1
+        if byte2 is not None:
+            length = byte2 + 1 - byte1
+
+        # Read partial content
+        with open(file_path, 'rb') as f:
+            f.seek(byte1)
+            data = f.read(length)
+
+        response = Response(
+            data,
+            206,
+            mimetype='video/mp4',
+            direct_passthrough=True
+        )
+        
+        # Determine content range
+        content_range_end = byte2 if byte2 is not None else file_size - 1
+        
+        response.headers.add('Content-Range', f'bytes {byte1}-{content_range_end}/{file_size}')
+        response.headers.add('Accept-Ranges', 'bytes')
+        response.headers.add('Content-Length', str(length))
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
+
+    # Default for images
     response = send_from_directory(HISTORY_FOLDER, filename)
-    if filename.lower().endswith('.mp4'):
-        response.headers['Content-Type'] = 'video/mp4'
     return response
+
+def reencode_video(input_path):
+    """Re-encode video to H.264/AAC with faststart using ffmpeg"""
+    try:
+        output_path = input_path + "_temp.mp4"
+        print(f"🔄 Re-encoding video: {input_path}")
+        
+        # FFmpeg command
+        # -y: overwrite output
+        # -c:v libx264: use H.264 video codec
+        # -preset fast: encode speed
+        # -profile:v high: high profile for better compatibility
+        # -level 4.0: compatibility level
+        # -pix_fmt yuv420p: ensure wide player compatibility (essential for QuickTime/Safari)
+        # -c:a aac: use AAC audio codec
+        # -movflags +faststart: move metadata to front for streaming
+        cmd = [
+            'ffmpeg', '-y', 
+            '-i', input_path,
+            '-c:v', 'libx264',
+            '-preset', 'fast',
+            '-pix_fmt', 'yuv420p',
+            '-c:a', 'aac',
+            '-movflags', '+faststart',
+            output_path
+        ]
+        
+        # Run ffmpeg
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        
+        if result.returncode != 0:
+            print(f"❌ FFmpeg re-encoding failed: {result.stderr.decode()}")
+            return input_path # Fallback to original
+            
+        print(f"✅ Video re-encoded successfully!")
+        
+        # Replace original
+        os.remove(input_path)
+        os.rename(output_path, input_path)
+        return input_path
+        
+    except Exception as e:
+        print(f"❌ Error during re-encoding: {e}")
+        return input_path
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
@@ -300,13 +389,16 @@ def predict_video():
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
         
+        # Re-encode video for proper web playback
+        filepath = reencode_video(filepath)
+        
         # Process Video
         # Note: process_video needs sys.path to be correct to import models inside it if it was standalone,
         # but here we pass the already loaded 'model' object.
         if model is None:
              return jsonify({'error': 'Model not loaded'}), 500
              
-        result = video_inference.process_video(filepath, model, transform, device)
+        result = video_inference.process_video(filepath, model, transform, device, frames_per_second=15)
         
         if "error" in result:
              return jsonify(result), 500
