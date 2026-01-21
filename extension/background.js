@@ -3,7 +3,7 @@
  * Handles context menu creation and message passing
  */
 
-const API_URL = 'http://localhost:5001/api/predict';
+const API_URL = 'http://localhost:7860/api/predict';
 
 // Create context menu on installation
 chrome.runtime.onInstalled.addListener(() => {
@@ -44,9 +44,22 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 // Analyze Image Function
 async function analyzeImage(imageUrl) {
     try {
-        // Fetch the image
-        const response = await fetch(imageUrl);
+        // Fetch the image with proper CORS handling
+        const response = await fetch(imageUrl, {
+            mode: 'cors',
+            credentials: 'omit'
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+        }
+
         const blob = await response.blob();
+
+        // Validate that we got an image
+        if (!blob.type.startsWith('image/')) {
+            throw new Error('The fetched content is not an image');
+        }
 
         // Create FormData
         const formData = new FormData();
@@ -55,8 +68,13 @@ async function analyzeImage(imageUrl) {
         // Send to API
         const apiResponse = await fetch(API_URL, {
             method: 'POST',
-            body: formData
+            body: formData,
+            mode: 'cors'
         });
+
+        if (!apiResponse.ok) {
+            throw new Error(`API request failed: ${apiResponse.status} ${apiResponse.statusText}`);
+        }
 
         const data = await apiResponse.json();
 
@@ -69,7 +87,16 @@ async function analyzeImage(imageUrl) {
 
     } catch (error) {
         console.error('Analysis failed:', error);
-        handleError(error.message);
+        
+        // Provide more specific error messages
+        let errorMessage = error.message;
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+            errorMessage = 'Unable to connect to the DeepGuard backend. Please ensure the backend is running on localhost:7860';
+        } else if (error.message.includes('CORS')) {
+            errorMessage = 'Cannot access this image due to cross-origin restrictions. Try uploading the image directly from the extension popup.';
+        }
+        
+        handleError(errorMessage);
     }
 }
 

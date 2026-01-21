@@ -2,6 +2,7 @@ import cv2
 import torch
 import numpy as np
 import os
+import base64
 from PIL import Image
 
 def process_video(video_path, model, transform, device, frames_per_second=1):
@@ -103,8 +104,17 @@ def process_video(video_path, model, transform, device, frames_per_second=1):
                     logits = model(image_tensor)
                     prob = torch.sigmoid(logits).item()
                 
+                # Generate Thumbnail (Low res)
+                thumb_img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                thumb_img = cv2.resize(thumb_img, (160, 90)) # 16:9 thumbnail
+                _, buffer = cv2.imencode('.jpg', cv2.cvtColor(thumb_img, cv2.COLOR_RGB2BGR), [int(cv2.IMWRITE_JPEG_QUALITY), 70])
+                thumb_b64 = base64.b64encode(buffer).decode('utf-8')
+                
                 probs.append(prob)
-                frame_indices.append(count)
+                frame_indices.append({
+                    "index": count,
+                    "thumbnail": thumb_b64
+                })
                 processed_count += 1
                 
                 # If highly fake, store metadata (timestamp)
@@ -113,7 +123,8 @@ def process_video(video_path, model, transform, device, frames_per_second=1):
                     suspicious_frames.append({
                         "timestamp": round(timestamp, 2),
                         "frame_index": count,
-                        "fake_prob": round(prob, 4)
+                        "fake_prob": round(prob, 4),
+                        "thumbnail": thumb_b64
                     })
                     
             except Exception as e:
@@ -165,8 +176,12 @@ def process_video(video_path, model, transform, device, frames_per_second=1):
         "processed_frames": processed_count,
         "duration": float(duration),
         "timeline": [
-            {"time": round(i / fps, 2), "prob": round(p, 3)} 
-            for i, p in zip(frame_indices, probs)
+            {
+                "time": round(item["index"] / fps, 2), 
+                "prob": round(p, 3),
+                "thumbnail": item["thumbnail"]
+            } 
+            for item, p in zip(frame_indices, probs)
         ],
         "suspicious_frames": suspicious_frames[:10] # Top 10 suspicious moments
     }

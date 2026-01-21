@@ -40,10 +40,19 @@ function initializeVideoPlayer() {
     // Set video source if available
     // Try multiple sources in order of priority
     if (currentResult && currentResult.video_url) {
-        videoPlayer.src = currentResult.video_url;
+        // Ensure path starts with / if relative
+        let src = currentResult.video_url;
+        if (!src.startsWith('http') && !src.startsWith('/')) {
+            src = '/' + src;
+        }
+        videoPlayer.src = src;
     } else if (currentResult && currentResult.image_path) {
-        // If image_path is provided (from backend), use it as video source
-        videoPlayer.src = currentResult.image_path;
+        // Fallback or Image Path logic
+        let src = currentResult.image_path;
+        if (!src.startsWith('http') && !src.startsWith('/')) {
+            src = '/' + src;
+        }
+        videoPlayer.src = src;
     } else {
         console.warn('No video source available in result data');
         // Show a placeholder message if no video is available
@@ -85,6 +94,7 @@ function initializeVideoPlayer() {
     // Error handling
     videoPlayer.addEventListener('error', (e) => {
         console.error('Video load error:', e);
+        console.error('Failed source:', videoPlayer.src);
         const videoWrapper = document.querySelector('.video-wrapper');
         if (videoWrapper) {
             const errorMsg = document.createElement('div');
@@ -96,11 +106,15 @@ function initializeVideoPlayer() {
                 text-align: center;
                 color: rgba(255, 51, 51, 0.8);
                 z-index: 5;
+                background: rgba(0,0,0,0.7);
+                padding: 20px;
+                border-radius: 10px;
             `;
             errorMsg.innerHTML = `
                 <i class="fas fa-exclamation-triangle" style="font-size: 4rem; margin-bottom: 1rem; display: block;"></i>
                 <p style="font-size: 1.1rem;">Failed to load video</p>
                 <p style="font-size: 0.9rem; margin-top: 0.5rem;">The video format may not be supported</p>
+                <p style="font-size: 0.8rem; color: #aaa; margin-top: 10px; word-break: break-all;">Source: ${videoPlayer.src}</p>
             `;
             videoWrapper.appendChild(errorMsg);
         }
@@ -504,9 +518,13 @@ function renderFrameGrid(timeline, duration) {
         const frameItem = document.createElement('div');
         frameItem.className = 'frame-item' + (frame.prob > 0.5 ? ' suspicious' : '');
 
+        const thumbContent = frame.thumbnail
+            ? `<img src="data:image/jpeg;base64,${frame.thumbnail}" style="width: 100%; height: 100%; object-fit: cover;">`
+            : `<i class="fas fa-film" style="font-size: 2rem;"></i>`;
+
         frameItem.innerHTML = `
-            <div class="frame-thumbnail" style="display: flex; align-items: center; justify-content: center; color: #666; font-size: 0.9rem;">
-                <i class="fas fa-film" style="font-size: 2rem;"></i>
+            <div class="frame-thumbnail" style="display: flex; align-items: center; justify-content: center; color: #666; font-size: 0.9rem; overflow: hidden; background: #000;">
+                ${thumbContent}
             </div>
             <div class="frame-badge ${frame.prob > 0.5 ? 'suspicious' : 'clean'}">
                 ${frame.prob > 0.5 ? '⚠️ ' + (frame.prob * 100).toFixed(0) + '%' : '✓ ' + ((1 - frame.prob) * 100).toFixed(0) + '%'}
@@ -583,7 +601,9 @@ function setupDownloadButton() {
             }, 3000);
         } catch (error) {
             console.error('Error generating report:', error);
-            downloadBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error Generating Report';
+            downloadBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error';
+
+            alert(`Failed to generate report: ${error.message || error}\nPlease check console for details.`);
 
             setTimeout(() => {
                 downloadBtn.innerHTML = originalText;
@@ -594,30 +614,214 @@ function setupDownloadButton() {
 }
 
 async function generatePDFReport() {
-    // For now, create a simple JSON download
-    // Full PDF generation would require jsPDF library properly configured
-    const reportData = {
-        timestamp: new Date().toISOString(),
-        verdict: currentResult.prediction,
-        confidence: currentResult.confidence,
-        duration: currentResult.duration,
-        framesProcessed: currentResult.processed_frames,
-        suspiciousFrames: currentResult.suspicious_frames.length,
-        avgFakeProbability: currentResult.avg_fake_prob,
-        timeline: currentResult.timeline,
-        notes: document.getElementById('analysisNotes').textContent
-    };
+    const reportContainer = document.getElementById('reportContainer');
+    const isFake = currentResult.prediction === 'FAKE';
+    const accentColor = isFake ? '#ff3333' : '#10B981';
 
-    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `deepguard-video-report-${Date.now()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // 1. Construct Report HTML
+    const dateStr = new Date().toLocaleDateString('en-US', {
+        year: 'numeric', month: 'long', day: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+    });
 
-    // TODO: Implement actual PDF generation using jsPDF
-    // This would capture charts and create a branded PDF report
+    // Get frames for report (max 8)
+    // Prioritize suspicious frames if fake, otherwise spread out frames
+    let reportFrames = [];
+    if (isFake && currentResult.suspicious_frames && currentResult.suspicious_frames.length > 0) {
+        // Take up to 8 suspicious frames
+        reportFrames = currentResult.suspicious_frames
+            .slice(0, 8)
+            .map(idx => currentResult.timeline[idx])
+            .filter(frame => frame !== undefined);
+    } else if (currentResult.timeline && currentResult.timeline.length > 0) {
+        // Take up to 8 evenly spaced frames
+        const step = Math.max(1, Math.floor(currentResult.timeline.length / 8));
+        for (let i = 0; i < currentResult.timeline.length && reportFrames.length < 8; i += step) {
+            if (currentResult.timeline[i]) {
+                reportFrames.push(currentResult.timeline[i]);
+            }
+        }
+    }
+
+    const framesHTML = reportFrames.map(frame => {
+        if (!frame) return '';
+        return `
+        <div class="report-frame-item">
+            ${frame.thumbnail ? `<img src="data:image/jpeg;base64,${frame.thumbnail}">` : ''}
+            <div class="report-frame-badge" style="background: ${frame.prob > 0.5 ? '#ff3333' : '#10B981'}">
+                ${(frame.prob * 100).toFixed(0)}%
+            </div>
+        </div>
+    `}).join('');
+
+    // Capture chart as image
+    const chartCanvas = document.getElementById('timelineChart');
+    const chartImg = chartCanvas.toDataURL('image/png');
+
+    // Capture video preview (thumbnail of current frame)
+    // We can use the first frame of the timeline if available, or just a placeholder if video element is cross-origin restricted
+    // Ideally, we'd capture the video element, but that's often blocked by CORS or returns black.
+    // Let's use the thumbnail of the most significant frame from the timeline as the 'video preview'
+    // Find the first frame with a valid thumbnail in reportFrames, or fallback to any frame in timeline
+    let mainPreviewThumb = '';
+
+    // Helper to check for thumbnail
+    const hasThumb = (f) => f && f.thumbnail;
+
+    // 1. Try report frames (suspicious/key frames)
+    const previewFrame = reportFrames.find(hasThumb) || currentResult.timeline.find(hasThumb);
+
+    if (previewFrame) {
+        mainPreviewThumb = `data:image/jpeg;base64,${previewFrame.thumbnail}`;
+    }
+
+    reportContainer.innerHTML = `
+        <div class="report-header">
+            <div class="report-logo">
+                <img src="logo.png" alt="DeepGuard Logo">
+                <span>DeepGuard Analysis Report</span>
+            </div>
+            <div class="report-meta">
+                <p>Generated on: ${dateStr}</p>
+                <p>Ref ID: ${Math.random().toString(36).substr(2, 9).toUpperCase()}</p>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 2fr 3fr; gap: 30px; margin-bottom: 30px;">
+            <!-- Video Preview Section -->
+            <div class="report-card" style="margin: 0; padding: 10px; display: flex; align-items: center; justify-content: center; background: #000; overflow: hidden; height: 200px;">
+                ${mainPreviewThumb
+            ? `<img src="${mainPreviewThumb}" style="width: 100%; height: 100%; object-fit: contain;">`
+            : `<div style="color: #666;">Video Preview</div>`}
+            </div>
+
+            <!-- Verdict Section -->
+            <div class="report-verdict" style="margin: 0; padding: 20px; border-color: ${accentColor}; background: ${isFake ? 'rgba(255, 51, 51, 0.1)' : 'rgba(16, 185, 129, 0.1)'}">
+                <div class="report-verdict-content" style="width: 100%;">
+                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+                        <div class="report-verdict-icon" style="background: ${accentColor}; color: white; width: 50px; height: 50px; font-size: 24px;">
+                            <i class="fas ${isFake ? 'fa-exclamation-triangle' : 'fa-check-circle'}"></i>
+                        </div>
+                        <div>
+                            <h2 style="color: ${accentColor}; font-size: 24px; margin: 0;">${currentResult.prediction === 'FAKE' ? 'MANIPULATION DETECTED' : 'AUTHENTIC MEDIA'}</h2>
+                        </div>
+                    </div>
+                    
+                    <!-- Confidence Meter -->
+                    <div style="margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 14px;">
+                            <span>Confidence Score</span>
+                            <strong>${(currentResult.confidence * 100).toFixed(1)}%</strong>
+                        </div>
+                        <div style="width: 100%; height: 10px; background: rgba(255,255,255,0.1); border-radius: 5px; overflow: hidden;">
+                            <div style="width: ${(currentResult.confidence * 100).toFixed(1)}%; height: 100%; background: ${accentColor};"></div>
+                        </div>
+                    </div>
+
+                    <p style="font-size: 12px; opacity: 0.8; line-height: 1.4;">
+                        ${isFake
+            ? 'DeepGuard has detected strong indicators of digital manipulation in this video.'
+            : 'DeepGuard did not detect any significant anomalies or signs of manipulation.'}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="report-grid">
+            <div class="report-card">
+                <h3>ANALYSIS STATISTICS</h3>
+                <div class="report-stats-grid">
+                    <div class="report-stat-item">
+                        <span class="report-stat-label">Duration</span>
+                        <span class="report-stat-value">${currentResult.duration.toFixed(1)}s</span>
+                    </div>
+                    <div class="report-stat-item">
+                        <span class="report-stat-label">Frames Scanned</span>
+                        <span class="report-stat-value">${currentResult.processed_frames}</span>
+                    </div>
+                    <div class="report-stat-item">
+                        <span class="report-stat-label">Suspicious Frames</span>
+                        <span class="report-stat-value" style="color: ${isFake ? '#ff3333' : 'inherit'}">${currentResult.suspicious_frames.length}</span>
+                    </div>
+                    <div class="report-stat-item">
+                        <span class="report-stat-label">Avg. Anomaly Score</span>
+                        <span class="report-stat-value">${(currentResult.avg_fake_prob * 100).toFixed(1)}%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="report-card">
+                <h3>DETAILED FINDINGS</h3>
+                <div style="font-size: 14px; line-height: 1.6; opacity: 0.9;">
+                    ${document.getElementById('analysisNotes').innerHTML}
+                </div>
+            </div>
+        </div>
+
+        <div class="report-card" style="margin-bottom: 30px;">
+            <h3>TEMPORAL ANALYSIS</h3>
+            <img src="${chartImg}" style="width: 100%; height: auto; max-height: 250px; object-fit: contain; margin-top: 10px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+        </div>
+
+        <div class="report-card">
+            <h3>KEY FRAMES</h3>
+            <div class="report-frames">
+                ${framesHTML}
+            </div>
+        </div>
+
+        <div class="report-footer">
+            <p>DeepGuard AI Analysis System • Deepfake Detection Report • ${dateStr}</p>
+        </div>
+    `;
+
+    // 2. Generate PDF using html2canvas and jspdf
+    // Unhide container temporarily (off-screen but rendered)
+    reportContainer.style.opacity = '1';
+    reportContainer.style.zIndex = '9999';
+    reportContainer.style.background = '#0a0a0a';
+
+    try {
+        // Ensure libraries are loaded
+        if (!window.html2canvas) {
+            throw new Error("html2canvas library not loaded");
+        }
+
+        // Check for jspdf in various likely locations
+        const jsPDF = window.jspdf?.jsPDF || window.jsPDF;
+        if (!jsPDF) {
+            console.error("jspdf debug:", window.jspdf);
+            throw new Error("jspdf library not loaded properly");
+        }
+
+        const canvas = await html2canvas(reportContainer, {
+            scale: 2, // Improve quality
+            useCORS: true,
+            backgroundColor: '#0a0a0a',
+            logging: false
+        });
+
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+        });
+
+        const imgWidth = 210; // A4 width in mm
+        const pageHeight = 297; // A4 height in mm
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+
+        // If content is longer than one page (unlikely with this layout but good to handle)
+        // For now, simpler single page strictly controlled by layout
+
+        pdf.save(`DeepGuard_Report_${Date.now()}.pdf`);
+
+    } finally {
+        // Hide again
+        reportContainer.style.opacity = '0';
+        reportContainer.style.zIndex = '-1000';
+    }
 }
