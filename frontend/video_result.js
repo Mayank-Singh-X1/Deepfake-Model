@@ -40,10 +40,19 @@ function initializeVideoPlayer() {
     // Set video source if available
     // Try multiple sources in order of priority
     if (currentResult && currentResult.video_url) {
-        videoPlayer.src = currentResult.video_url;
+        // Ensure path starts with / if relative
+        let src = currentResult.video_url;
+        if (!src.startsWith('http') && !src.startsWith('/')) {
+            src = '/' + src;
+        }
+        videoPlayer.src = src;
     } else if (currentResult && currentResult.image_path) {
-        // If image_path is provided (from backend), use it as video source
-        videoPlayer.src = currentResult.image_path;
+        // Fallback or Image Path logic
+        let src = currentResult.image_path;
+        if (!src.startsWith('http') && !src.startsWith('/')) {
+            src = '/' + src;
+        }
+        videoPlayer.src = src;
     } else {
         console.warn('No video source available in result data');
         // Show a placeholder message if no video is available
@@ -85,6 +94,7 @@ function initializeVideoPlayer() {
     // Error handling
     videoPlayer.addEventListener('error', (e) => {
         console.error('Video load error:', e);
+        console.error('Failed source:', videoPlayer.src);
         const videoWrapper = document.querySelector('.video-wrapper');
         if (videoWrapper) {
             const errorMsg = document.createElement('div');
@@ -96,11 +106,15 @@ function initializeVideoPlayer() {
                 text-align: center;
                 color: rgba(255, 51, 51, 0.8);
                 z-index: 5;
+                background: rgba(0,0,0,0.7);
+                padding: 20px;
+                border-radius: 10px;
             `;
             errorMsg.innerHTML = `
                 <i class="fas fa-exclamation-triangle" style="font-size: 4rem; margin-bottom: 1rem; display: block;"></i>
                 <p style="font-size: 1.1rem;">Failed to load video</p>
                 <p style="font-size: 0.9rem; margin-top: 0.5rem;">The video format may not be supported</p>
+                <p style="font-size: 0.8rem; color: #aaa; margin-top: 10px; word-break: break-all;">Source: ${videoPlayer.src}</p>
             `;
             videoWrapper.appendChild(errorMsg);
         }

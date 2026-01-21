@@ -2,8 +2,8 @@
  * DeepGuard Browser Extension - Compact Popup Logic
  */
 
-const API_URL = 'http://localhost:5001/api/predict';
-const API_STATUS_URL = 'http://localhost:5001/api/health';
+const API_URL = 'http://localhost:7860/api/predict';
+const API_STATUS_URL = 'http://localhost:7860/api/health';
 
 // DOM Elements
 const uploadZone = document.getElementById('uploadZone');
@@ -108,6 +108,11 @@ function setupEventListeners() {
 async function checkAPIStatus() {
     try {
         const response = await fetch(API_STATUS_URL);
+
+        if (!response.ok) {
+            throw new Error(`Health check failed: ${response.status}`);
+        }
+
         const data = await response.json();
 
         if (data.status === 'healthy' && data.model_loaded) {
@@ -115,10 +120,12 @@ async function checkAPIStatus() {
             apiStatus.title = "System Online";
         } else {
             apiStatus.classList.add('offline');
-            apiStatus.title = "Model Not Loaded";
+            apiStatus.title = data.model_loaded ? "System Initializing" : "Model Not Loaded";
         }
     } catch (error) {
+        console.error('API status check failed:', error);
         apiStatus.classList.add('offline');
+        apiStatus.title = "Backend Offline - Start server on localhost:7860";
     }
 }
 
@@ -188,7 +195,11 @@ async function analyzeImage() {
             showError(data.error || 'Analysis failed');
         }
     } catch (error) {
-        showError('Unable to connect to API. Make sure backend is running on localhost:5001');
+        console.error('Analysis error:', error);
+        const errorMessage = error.message.includes('Failed to fetch')
+            ? 'Unable to connect to the DeepGuard backend. Please ensure the backend is running on localhost:7860'
+            : error.message;
+        showError(errorMessage);
     }
 }
 

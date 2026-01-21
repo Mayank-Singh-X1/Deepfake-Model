@@ -201,7 +201,18 @@ def index():
 @app.route('/history_uploads/<path:filename>')
 def serve_history_image(filename):
     """Serve history images"""
-    return send_from_directory(HISTORY_FOLDER, filename)
+    # guess mime type based on extension
+    # mimetype = None
+    # if filename.lower().endswith('.mp4'):
+    #     mimetype = 'video/mp4'
+    # return send_from_directory(HISTORY_FOLDER, filename, mimetype=mimetype)
+    
+    # Actually, Flask's send_from_directory should handle it, but sometimes it needs help on some OSs
+    # or if the registry is incomplete.
+    response = send_from_directory(HISTORY_FOLDER, filename)
+    if filename.lower().endswith('.mp4'):
+        response.headers['Content-Type'] = 'video/mp4'
+    return response
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
